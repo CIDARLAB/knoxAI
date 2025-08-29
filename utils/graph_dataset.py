@@ -26,6 +26,9 @@ class GraphDataset(Dataset):
         ## - Process Graphs - ##
         self.graph_list = self.process_graphs()
 
+
+    ## - Processing - ##
+
     def process_data_config(self, data_config):
         self.edges_to_use = data_config.get('edges_to_use')
         self.use_oneHot_parts = data_config.get('use_oneHot_parts')
@@ -54,6 +57,9 @@ class GraphDataset(Dataset):
         self.parts = list(part_library.columns)
         self.part_types = part_library.loc['type'].tolist()
 
+    
+    ## - Build Graphs - ##
+
     def process_graphs(self):
         graph_data = [self.build_graph(row) for row in self.design_data]
         return graph_data
@@ -65,17 +71,17 @@ class GraphDataset(Dataset):
         data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
         return data
     
+    
+    ## - Build Edges - ##
+
     def build_edges(self, design):
-        edge_index, edge_attr = self.build_structure_edges(design) if self.edges_to_use in ['all', 'structure'] else ([], [])
-        edge_index, edge_attr += self.build_interaction_edges(design, len(edge_index[0])) if self.edges_to_use in ['all', 'interaction'] else ([], [])
+        src, dest, edge_attr = self.build_interaction_edges(design) if self.edges_to_use in ['all', 'interaction'] else ([], [], [])
+        src, dest, edge_attr += self.build_structure_edges(design, len(edge_attr[0])) if self.edges_to_use in ['all', 'structure'] else ([], [], [])
+        src, dest, edge_attr += self.build_self_loops(design, len(edge_attr[0]))
+        edge_index = [src, dest]
         return edge_index, edge_attr
-
-    def build_structure_edges(self, design):
-        edge_index = [[index for index in range(len(design) - 1)], [index for index in range(1, len(design))]] # [source, destination]
-        return edge_index, []
-
-    def build_interaction_edges(self, design, edge_index_length):
-        edge_index = []
+    
+    def build_interaction_edges(self, design):
         edge_attr = []
         src = []
         dest = []
@@ -87,14 +93,22 @@ class GraphDataset(Dataset):
                         src.append(index1)
                         dest.append(index2)
                         edge_attr.append(interaction.get('features'))
+        return src, dest, edge_attr
 
-        edge_index.append(src)
-        edge_index.append(dest)
+    def build_structure_edges(self, design, edge_attr_size):
+        src = [index for index in range(len(design) - 1)]
+        dest = [index for index in range(1, len(design))]
+        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
+        return src, dest, edge_attr
 
-        if self.edges_to_use == 'all' and edge_index_length > 0: # Add zero edge features for structure edges
-            edge_attr = [[0 for j in range(len(edge_attr[0]))] for i in range(edge_index_length)] + edge_attr
+    def build_self_loops(self, design, edge_attr_size):
+        src = [index for index in range(len(design))]
+        dest = [index for index in range(len(design))]
+        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
+        return src, dest, edge_attr
 
-        return edge_index, edge_attr
+    
+    ## - Build Nodes - ##
 
     def build_nodes(self, design):
         return [self.build_node_features(part, design[index+1] if index+1 < len(design) else None) for index, part in enumerate(design)]
@@ -147,6 +161,8 @@ class GraphDataset(Dataset):
         all_weights = [[float(weight) for weight in weights] for weights in self.part_library.loc['weights']]
         return (np.mean(all_weights), np.std(all_weights)) if len(all_weights) > 0 else (0, 1)
     
+
+    ## - Labels - ##
     def get_label(self, score):
         if self.task == 'binary_classification':
             return 0 if score <= self.cut_off else 1
@@ -162,6 +178,9 @@ class GraphDataset(Dataset):
 
         ranks = rankdata([-s for s in scores], method='min')
         return dict(zip(scores, ranks))
+
+
+    ## - Extras - ##
 
     def get_batch(self, shuffle=False):
         if shuffle:
