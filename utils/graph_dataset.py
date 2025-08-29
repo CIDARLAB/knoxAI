@@ -2,28 +2,60 @@ import torch
 from torch_geometric.data import Dataset, Data, Batch
 import pandas as pd
 import numpy as np
+from scipy.stats import rankdata
 import random
 
 from config.data_config import DEFAULTS
 
 class GraphDataset(Dataset):
-    def __init__(self, data, task, data_config, part_analytics=None, transform=None, pre_transform=None):
-        super().__init__(data, task, data_config, part_analytics, transform, pre_transform)
-        self.data = data
-        self.task = task
-        self.data_config = {**DEFAULTS, **data_config}
-        self.part_analytics = pd.DataFrame(part_analytics) if part_analytics else None
-        
-        self.cut_off = np.median(data.get('scores')) if task == 'binary_classification' else None
-        self.part_analytics = pd.DataFrame(part_analytics) if part_analytics else None
-        self.mean_gta, self.std_gta = self.normalize_part_analytics() if part_analytics else (0, 1)
-        self.score_to_ranking = self.data.get('score_to_ranking') if task == 'ranking' else None
+    def __init__(self, data, task, data_config, use_for="training", transform=None, pre_transform=None):
+        super().__init__(data, task, data_config, use_for, transform, pre_transform)
 
-        self.graph_list = self.process_data()
+        ## - Get Task & Use For - ##
+        self.task = task         
+        self.use_for = use_for   
+
+        ## - Process Data Config - ##
+        self.data_config = {**DEFAULTS, **data_config}
+        self.process_data_config(self.data_config)
+
+        ## - Process Data - ##
+        self.data = data
+        self.process_data(self.data)
         
-    def process_data(self):
-        training_data = self.data.get('training_data')
-        graph_data = [self.build_graph(row) for row in training_data]
+        ## - Process Graphs - ##
+        self.graph_list = self.process_graphs()
+
+    def process_data_config(self, data_config):
+        self.edges_to_use = data_config.get('edges_to_use')
+        self.use_oneHot_parts = data_config.get('use_oneHot_parts')
+        self.use_oneHot_types = data_config.get('use_oneHot_types')
+        self.use_part_data = data_config.get('use_part_data')
+        self.norm_part_data = data_config.get('norm_part_data')
+        self.use_gta = data_config.get('use_gta')
+        self.use_all_part_analytics = data_config.get('use_all_part_analytics')
+        self.part_analytics_method = data_config.get('part_analytics_method')
+        self.norm_gta = data_config.get('norm_gta')
+
+    def process_data(self, data):
+        ## - Design Data - ##
+        self.design_data = data.get('training_data')
+        self.scores_to_ranking = self.convert_scores_to_ranking() if self.task == 'ranking' else None
+        
+        ## - Interaction Library - ##
+        self.interaction_library = data.get('interaction_library')
+
+        ## - Part Library - ##
+        self.part_library = pd.DataFrame(data.get('part_library'))
+        self.process_part_library(self.part_library) if self.part_library is not None else None
+
+    def process_part_library(self, part_library):
+        self.mean_gta, self.std_gta = self.normalize_part_analytics() if (part_library and self.norm_gta) else (0, 1)
+        self.parts = list(part_library.columns)
+        self.part_types = part_library.loc['type'].tolist()
+
+    def process_graphs(self):
+        graph_data = [self.build_graph(row) for row in self.design_data]
         return graph_data
 
     def build_graph(self, row):
@@ -34,30 +66,34 @@ class GraphDataset(Dataset):
         return data
     
     def build_edges(self, design):
-        edge_index, edge_attr = self.build_structure_edges(design) if self.data_config.get('edges_to_use') in ['all', 'structure'] else ([], [])
-        edge_index, edge_attr += self.build_structure_edges(design) if self.data_config.get('edges_to_use') in ['all', 'structure'] else ([], [])
+        edge_index, edge_attr = self.build_structure_edges(design) if self.edges_to_use in ['all', 'structure'] else ([], [])
+        edge_index, edge_attr += self.build_interaction_edges(design, len(edge_index[0])) if self.edges_to_use in ['all', 'interaction'] else ([], [])
         return edge_index, edge_attr
 
     def build_structure_edges(self, design):
         edge_index = [[index for index in range(len(design) - 1)], [index for index in range(1, len(design))]] # [source, destination]
-        edge_attr = [[0 for j in range(self.data.get('interaction_feature_size'))] for i in len(edge_index[0])]
-        return edge_index, edge_attr
+        return edge_index, []
 
-    def build_interaction_edges(self, design):
+    def build_interaction_edges(self, design, edge_index_length):
         edge_index = []
         edge_attr = []
         src = []
         dest = []
         for index1, part1 in enumerate(design):
-            for index2, part2 in enumerate(design):
-                interaction = self.data.get('interaction_library').get(part1).get(part2)
-                if interaction and (not interaction.get('only_adjacent') or index1+1 == index2):
-                    src.append(index1)
-                    dest.append(index2)
-                    edge_attr.append(interaction.get('features'))
+            if self.interaction_library.get(part1):
+                for index2, part2 in enumerate(design):
+                    interaction = self.interaction_library.get(part1).get(part2)
+                    if interaction and (not interaction.get('only_adjacent') or index1+1 == index2):
+                        src.append(index1)
+                        dest.append(index2)
+                        edge_attr.append(interaction.get('features'))
 
         edge_index.append(src)
         edge_index.append(dest)
+
+        if self.edges_to_use == 'all' and edge_index_length > 0: # Add zero edge features for structure edges
+            edge_attr = [[0 for j in range(len(edge_attr[0]))] for i in range(edge_index_length)] + edge_attr
+
         return edge_index, edge_attr
 
     def build_nodes(self, design):
@@ -65,47 +101,51 @@ class GraphDataset(Dataset):
 
     def build_node_features(self, part, next_part):
         node_features = []
-        node_features += self.build_oneHot_parts(part) if self.data_config.get('use_oneHot_parts') else []
-        node_features += self.build_oneHot_types(part) if self.data_config.get('use_oneHot_types') else []
-        node_features += self.build_additional_node_features(part) if self.data_config.get('use_part_data') else []
-        node_features += self.build_gta_features(part, next_part) if self.data_config.get('use_gta') else []
+        node_features += self.build_oneHot_parts(part) if self.use_oneHot_parts else []
+        node_features += self.build_oneHot_types(part) if self.use_oneHot_types else []
+        node_features += self.build_additional_node_features(part) if self.use_part_data else []
+        node_features += self.build_gta_features(part, next_part) if self.use_gta else []
         return node_features if node_features else [1]
 
     def build_oneHot_parts(self, part):
-        return [1 if part_id == part else 0 for part_id in self.data.get('parts')]
+        return [1 if part_id == part else 0 for part_id in self.parts]
 
     def build_oneHot_types(self, part):
-        return [1 if part_type == self.data['part_library'][part] else 0 for part_type in self.data.get('part_types')]
-    
+        return [1 if (part_type == self.part_library.loc['type', part] and part_type) else 0 for part_type in self.part_types]
+
     def build_additional_node_features(self, part):
         return self.data.get('part_data').get(part)
 
     def build_gta_features(self, part, next_part):
         gta_features = [self.get_gta_feature(part, next_part)]
         
-        if self.data_config.get('use_all_part_analytics'):
-            gta_features += [self.normalize_gta(float(self.part_analytics[part]['averageScore']))]
-            gta_features += [self.normalize_gta(float(self.part_analytics[part]['lowScore']))]
-            gta_features += [self.normalize_gta(float(self.part_analytics[part]['highScore']))]
+        if self.use_all_part_analytics:
+            gta_features += [self.normalize_gta(float(self.part_library[part]['averageScore']))]
+            gta_features += [self.normalize_gta(float(self.part_library[part]['lowScore']))]
+            gta_features += [self.normalize_gta(float(self.part_library[part]['highScore']))]
 
         return gta_features
     
     def get_gta_feature(self, part, next_part):
-        weights = self.part_analytics[part][next_part]
+        weights = self.part_library[part][next_part]
         if not weights or not next_part:
-            return self.normalize_gta(float(self.part_analytics[part]['averageScore']))
+            return self.normalize_gta(float(self.part_library[part]['averageScore']))
         
-        elif self.data_config.get('part_analytics_method') == 'avg':
+        elif self.part_analytics_method == 'avg':
             return self.normalize_gta(np.mean(weights))
         
-        elif self.data_config.get('part_analytics_method') == 'random':
+        elif self.part_analytics_method == 'random':
             return self.normalize_gta(random.choice(weights))
         
         else:
-            return self.normalize_gta(float(self.part_analytics[part]['averageScore']))
+            return self.normalize_gta(float(self.part_library[part]['averageScore']))
     
     def normalize_gta(self, val):
         return (val - self.mean_gta) / self.std_gta
+    
+    def normalize_part_analytics(self):
+        all_weights = [[float(weight) for weight in weights] for weights in self.part_library.loc['weights']]
+        return (np.mean(all_weights), np.std(all_weights)) if len(all_weights) > 0 else (0, 1)
     
     def get_label(self, score):
         if self.task == 'binary_classification':
@@ -113,12 +153,16 @@ class GraphDataset(Dataset):
         if self.task == 'regression':
             return score
         if self.task == 'ranking':
-            return self.score_to_ranking.get(score, 0)
+            return self.scores_to_ranking.get(score, 0)
+        
+    def convert_scores_to_ranking(self):
+        scores = []
+        for row in self.design_data:
+            scores.append(float(row['score']))
 
-    def normalize_part_analytics(self):
-        all_weights = [[float(weight) for weight in weights] for weights in self.part_analytics.loc['weights']]
-        return (np.mean(all_weights), np.std(all_weights)) if len(all_weights) > 0 else (0, 1)
-    
+        ranks = rankdata([-s for s in scores], method='min')
+        return dict(zip(scores, ranks))
+
     def get_batch(self, shuffle=False):
         if shuffle:
             random.shuffle(self.graph_list)

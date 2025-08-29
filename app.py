@@ -15,57 +15,77 @@ app = Flask(__name__)
 
 @app.route('/train-model', methods=["POST"])
 def train_model():
-    ## - Get Configurations - ##
-    config = request.get_json()
-    data = config.get('data')
-    data_config = config.get('data_config')
-    training_config = config.get('training_config')
+    try:
+        ## - Get Configurations - ##
+        config = request.get_json()
+        data = config.get('data')
+        data_config = config.get('data_config')
+        training_config = config.get('training_config')
 
-    ## - Load Dataset - ##
-    dataset = GraphDataset(data, training_config.get('task'), data_config, data.get('part_analytics')).get_batch()
+        ## - Load Dataset - ##
+        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
 
-    ## - Train Model - ##
-    model, best_test_loss, test_metric = train_model(dataset, training_config, verbose=True)
+        ## - Train Model - ##
+        model, best_test_loss, test_metric = train_model(dataset, training_config, verbose=True)
 
-    return jsonify({"best_test_loss": best_test_loss, "test_metric": test_metric})
+        return jsonify({"best_test_loss": best_test_loss, "test_metric": test_metric})
+    
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
 
 @app.route('/evaluate-model', methods=["POST"])
 def evaluate_model():
-    config = request.get_json()
-    data = config.get('data')
-    training_config, data_config = load_config(config.get('title'))
-    model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
+    try:
+        config = request.get_json()
+        data = config.get('data')
+        training_config, data_config = load_config(config.get('title'))
+        model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
 
-    dataset = GraphDataset(data, training_config.get('task'), data_config, data.get('part_analytics')).get_batch()
+        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
 
-    test_loader = DataLoader(dataset, batch_size=1, shuffle=True)
+        test_loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-    loss, metrics = test_model(model, test_loader, training_config, all_metrics=True)
+        loss, metrics = test_model(model, test_loader, training_config, all_metrics=True)
 
-    return jsonify({"loss": loss, "metrics": metrics})
+        return jsonify({"loss": loss, "metrics": metrics})
+    
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
 
 @app.route('/predict-model', methods=["POST"])
 def predict_model():
-    config = request.get_json()
-    data = config.get('data')
-    training_config, data_config = load_config(config.get('title'))
-    model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
+    try:
+        config = request.get_json()
+        data = config.get('data')
+        training_config, data_config = load_config(config.get('title'))
+        model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
 
-    dataset = GraphDataset(data, training_config.get('task'), data_config, data.get('part_analytics')).get_batch()
+        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
 
-    loader = DataLoader(dataset, batch_size=1, shuffle=True)
+        loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-    prediction = predict(model, loader, training_config)
+        prediction = predict(model, loader, training_config)
 
-    return jsonify({"prediction": prediction})
+        return jsonify({"prediction": prediction})
+
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
 
 @app.route('/available-metrics', methods=["GET"])
 def available_metrics():
-    return jsonify(get_available_metrics().keys())
+    try:
+        return jsonify(get_available_metrics().keys())
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
 
 @app.route('/model-registry', methods=["GET"])
 def model_registry():
-    return jsonify(get_model_registry())
+    try:
+        return jsonify(get_model_registry())
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

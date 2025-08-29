@@ -5,10 +5,12 @@ DEFAULTS = {
     ## - Nodes - ##
     'use_oneHot_parts': False,
     'use_oneHot_types': False,
-    'use_part_data': False,
+    'use_part_data': False, 
+    'norm_part_data': False,
     'use_gta': False,
 
     ## - GTA methods - ##
     'use_all_part_analytics': False,
-    'part_analytics_method': 'avg'
+    'part_analytics_method': 'avg',
+    'norm_gta': False
 }
