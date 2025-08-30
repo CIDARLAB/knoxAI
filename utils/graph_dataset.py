@@ -47,15 +47,27 @@ class GraphDataset(Dataset):
         
         ## - Interaction Library - ##
         self.interaction_library = data.get('interaction_library')
+        edge_types = set()
+        for part1 in self.interaction_library:
+            for part2 in self.interaction_library[part1]:
+                edge_type = self.interaction_library[part1][part2].get('type')
+                if edge_type is not None:
+                    edge_types.add(edge_type)
+
+        other_edge_type_count = 2 if self.edges_to_use == 'all' else 1
+        self.num_edge_types = len(edge_types) + other_edge_type_count
+        self.edge_type_to_index = {edge_type: index + other_edge_type_count for index, edge_type in enumerate(edge_types)}
 
         ## - Part Library - ##
         self.part_library = pd.DataFrame(data.get('part_library'))
-        self.process_part_library(self.part_library) if self.part_library is not None else None
+        self.process_part_library(self.part_library)
 
     def process_part_library(self, part_library):
         self.mean_gta, self.std_gta = self.normalize_part_analytics() if (part_library and self.norm_gta) else (0, 1)
         self.parts = list(part_library.columns)
-        self.part_types = part_library.loc['type'].tolist()
+        self.part_types = [part_type for part_type in part_library.loc['type'].tolist() if part_type is not None]
+        self.num_node_types = len(set(self.part_types))
+        self.part_type_to_index = {part_type: index for index, part_type in enumerate(set(self.part_types))}
 
     
     ## - Build Graphs - ##
@@ -65,26 +77,35 @@ class GraphDataset(Dataset):
         return graph_data
 
     def build_graph(self, row):
-        edge_index, edge_attr = self.build_edges(row.get('design'))
-        x = torch.tensor(self.build_nodes(row.get('design')))
-        y = torch.tensor([self.get_label(row.get('score'))])
-        data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+        edge_index, edge_attr, edge_type = self.build_edges(row.get('design'))
+        x, node_type = self.build_nodes(row.get('design'))
+        y = self.get_label(row.get('score'))
+        
+        data = Data(
+            x=torch.tensor(x), 
+            node_type=torch.tensor(node_type),
+            edge_index=torch.tensor(edge_index), 
+            edge_attr=torch.tensor(edge_attr), 
+            edge_type=torch.tensor(edge_type),
+            y=torch.tensor([y])
+        )
         return data
     
     
     ## - Build Edges - ##
 
     def build_edges(self, design):
-        src, dest, edge_attr = self.build_interaction_edges(design) if self.edges_to_use in ['all', 'interaction'] else ([], [], [])
-        src, dest, edge_attr += self.build_structure_edges(design, len(edge_attr[0])) if self.edges_to_use in ['all', 'structure'] else ([], [], [])
-        src, dest, edge_attr += self.build_self_loops(design, len(edge_attr[0]))
+        src, dest, edge_attr, edge_type = self.build_interaction_edges(design) if self.edges_to_use in ['all', 'interaction'] else ([], [], [], [])
+        src, dest, edge_attr, edge_type += self.build_structure_edges(design, len(edge_attr[0])) if self.edges_to_use in ['all', 'structure'] else ([], [], [], [])
+        src, dest, edge_attr, edge_type += self.build_self_loops(design, len(edge_attr[0]))
         edge_index = [src, dest]
-        return edge_index, edge_attr
-    
+        return edge_index, edge_attr, edge_type
+
     def build_interaction_edges(self, design):
         edge_attr = []
         src = []
         dest = []
+        edge_type = []
         for index1, part1 in enumerate(design):
             if self.interaction_library.get(part1):
                 for index2, part2 in enumerate(design):
@@ -93,25 +114,30 @@ class GraphDataset(Dataset):
                         src.append(index1)
                         dest.append(index2)
                         edge_attr.append(interaction.get('features'))
-        return src, dest, edge_attr
+                        edge_type.append(self.edge_type_to_index.get(interaction.get('type'))) if interaction.get('type') is not None else None
+        return src, dest, edge_attr, edge_type
 
     def build_structure_edges(self, design, edge_attr_size):
         src = [index for index in range(len(design) - 1)]
         dest = [index for index in range(1, len(design))]
         edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
-        return src, dest, edge_attr
+        edge_type = [1 for i in range(len(design)-1)]  # 1 is the index for structure edges
+        return src, dest, edge_attr, edge_type
 
     def build_self_loops(self, design, edge_attr_size):
         src = [index for index in range(len(design))]
         dest = [index for index in range(len(design))]
         edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
-        return src, dest, edge_attr
+        edge_type = [0 for i in range(len(design))]  # 0 is the index for self-loop edges
+        return src, dest, edge_attr, edge_type
 
     
     ## - Build Nodes - ##
 
     def build_nodes(self, design):
-        return [self.build_node_features(part, design[index+1] if index+1 < len(design) else None) for index, part in enumerate(design)]
+        node_features = [self.build_node_features(part, design[index+1] if index+1 < len(design) else None) for index, part in enumerate(design)]
+        node_type = [self.part_type_to_index.get(self.part_library.loc['type', part]) for part in design]
+        return node_features, node_type
 
     def build_node_features(self, part, next_part):
         node_features = []

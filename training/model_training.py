@@ -26,7 +26,13 @@ def train_model(dataset, training_config, data_config, verbose=True):
     model = ModelClass(in_channels=len(dataset[0].x[0]),
                        hidden_channels=training_config.get('hidden_channels'),
                        out_channels=get_out_channels(training_config.get('task')),
-                       edge_dim=dataset[0].edge_attr.size()[1])
+                       edge_dim=dataset[0].edge_attr.size()[1],
+                       dropout=training_config.get('dropout'),
+                       num_node_types=dataset.num_node_types,
+                       num_edge_types=dataset.num_edge_types,
+                       edge_type_emb_dim=training_config.get('edge_type_emb_dim'),
+                       edge_attr_emb_dim=training_config.get('edge_attr_emb_dim')
+    )
 
     ## - Run Training - ##
     model, best_test_loss, test_metric = run_training(model, train_loader, test_loader, training_config)
