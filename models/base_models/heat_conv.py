@@ -3,9 +3,9 @@ from torch_geometric.nn import HEATConv
 import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
-class HEATConvBase(nn.Module):
+class HEATConv(nn.Module):
     """
-    HEATConvBase
+    HEATConv
 
     A flexible Graph Neural Network (GNN) model using HEATConv layers from PyTorch Geometric.
     This model supports heterogeneous graphs with multiple node and edge types, as well as rich node and edge attributes.
@@ -32,7 +32,7 @@ class HEATConvBase(nn.Module):
     """
     
     def __init__(self, **kwargs):
-        super(HEATConvBase, self).__init__()
+        super(HEATConv, self).__init__()
 
         in_channels = kwargs.get('in_channels')
         hidden_channels = kwargs.get('hidden_channels')

@@ -85,7 +85,7 @@ def available_metrics():
 @app.route('/model-registry', methods=["GET"])
 def model_registry():
     try:
-        return jsonify(get_model_registry())
+        return jsonify(get_model_registry().keys())
     except Exception as e:
         return jsonify({"error": "Internal server error occurred"}), 500
     

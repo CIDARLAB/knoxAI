@@ -5,10 +5,11 @@ from torch_geometric.loader import DataLoader
 import torch
 import torch.optim as optim
 
-from config.training_config import DEFAULTS as training_defaults
-from config.data_config import DEFAULTS as data_defaults
-from model_registry import get_model_registry
-from evaluate.evaluate_model import test_model
+from ..config.training_config import DEFAULTS as training_defaults
+from ..config.data_config import DEFAULTS as data_defaults
+from ..model_registry import get_model_registry
+from ..evaluate.evaluate_model import test_model
+from ..utils.losses import get_criterion
 
 def train_model(dataset, training_config, data_config, verbose=True):
 
@@ -20,7 +21,7 @@ def train_model(dataset, training_config, data_config, verbose=True):
     train_loader, test_loader = load_data(dataset, training_config)
 
     ## - Get Model Class for Training - ##
-    ModelClass = get_model_registry().get(training_config.get('task')).get(training_config.get('model_name'))
+    ModelClass = get_model_registry().get(training_config.get('model_name'))
 
     ## - Build Model - ##
     model = ModelClass(in_channels=len(dataset[0].x[0]),
@@ -48,6 +49,7 @@ def train_model(dataset, training_config, data_config, verbose=True):
 def run_training(model, train_loader, test_loader, training_config, verbose=True):
     epochs = training_config.get('epochs')
     opt = optim.Adam(model.parameters(), lr=training_config.get('learning_rate'))
+    criterion = get_criterion(training_config.get('task'))
 
     best_test_loss = None
     metric_best_loss = None
@@ -60,7 +62,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
         for batch in train_loader:
             opt.zero_grad()
             pred = model(batch)
-            loss = model.loss(pred, batch.y)
+            loss = criterion(pred, batch.y)
             loss.backward()
             opt.step()
 

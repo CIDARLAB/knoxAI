@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import rankdata
 import random
 
-from config.data_config import DEFAULTS
+from ..config.data_config import DEFAULTS
 
 class GraphDataset(Dataset):
     def __init__(self, data, task, data_config, use_for="training", transform=None, pre_transform=None):

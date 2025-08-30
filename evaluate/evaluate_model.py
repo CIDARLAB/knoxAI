@@ -1,10 +1,12 @@
 import torch
 
-from config.training_config import DEFAULTS
-from utils.metrics import get_available_metrics
+from ..config.training_config import DEFAULTS
+from ..utils.metrics import get_available_metrics
+from ..utils.losses import get_criterion
 
 def test_model(model, test_loader, training_config, all_metrics=False):
     training_config = {**DEFAULTS, **training_config}
+    criterion = get_criterion(training_config.get('task'))
     preds = []
     labels = []
     
@@ -18,7 +20,7 @@ def test_model(model, test_loader, training_config, all_metrics=False):
         labels.append(label)
     preds = torch.cat(preds, dim=0)
     labels = torch.cat(labels, dim=0)
-    test_loss = model.loss(preds, labels)
+    test_loss = criterion(preds, labels)
 
     if all_metrics:
         metrics = {}

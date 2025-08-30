@@ -1,30 +1,25 @@
-import os
 import importlib
 
 def get_model_registry():
     """
-    Creates model_registry of the form task : {model_name : model}
-    
-    returns: model_registry
-    """
+    Creates a model_registry of the form {model_name: model_class}
+    Only includes models from the base_models folder.
 
+    Returns:
+        dict: model_registry
+    """
     model_registry = {}
 
-    tasks = [
-        name for name in os.listdir("models")
-        if os.path.isdir(os.path.join("models", name)) and not name.startswith("_") and not name == "base_models"
-    ]
+    # Import the base_models module
+    base_models_module = importlib.import_module("models.base_models")
 
-    for task in tasks:
-        module = importlib.import_module(f"models.{task}")
-        model_registry[task] = {
-            name: getattr(module, name)
-            for name in getattr(module, '__all__', [])
-        }
+    # Get all model names from __all__ in base_models/__init__.py
+    for model_name in getattr(base_models_module, '__all__', []):
+        model_registry[model_name] = getattr(base_models_module, model_name)
 
     return model_registry
 
 if __name__ == '__main__':
     model_registry = get_model_registry()
     print(model_registry)
-    print(type(model_registry.get("regression", {}).get("NNConvRegr")))
+    print(list(model_registry.keys()))

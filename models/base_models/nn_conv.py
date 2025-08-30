@@ -3,9 +3,9 @@ from torch_geometric.nn import NNConv
 import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
-class NNConvBase(nn.Module):
+class NNConv(nn.Module):
     """
-    NNConvBase
+    NNConv
 
     A Graph Neural Network (GNN) model using NNConv layers from PyTorch Geometric.
     This model is designed for graphs where edge attributes play a significant role in message passing.
@@ -28,7 +28,7 @@ class NNConvBase(nn.Module):
     """
     
     def __init__(self, **kwargs):
-        super(NNConvBase, self).__init__()
+        super(NNConv, self).__init__()
 
         in_channels = kwargs.get('in_channels')
         hidden_channels = kwargs.get('hidden_channels')

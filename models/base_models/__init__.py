@@ -1,5 +1,5 @@
-from .graph_conv import GraphConvBase
-from .nn_conv import NNConvBase
-from .heat_conv import HEATConvBase
+from .graph_conv import GraphConv
+from .nn_conv import NNConv
+from .heat_conv import HEATConv
 
-__all__ = ['GraphConvBase', 'NNConvBase', 'HEATConvBase']
+__all__ = ['GraphConv', 'NNConv', 'HEATConv']
