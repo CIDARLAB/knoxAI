@@ -28,6 +28,8 @@ def train_model(dataset, training_config, data_config, verbose=True):
                        out_channels=get_out_channels(training_config.get('task')),
                        edge_dim=dataset[0].edge_attr.size()[1],
                        dropout=training_config.get('dropout'),
+                       num_layers=training_config.get('num_layers'),
+                       pooling_method=training_config.get('pooling_method'),
                        num_node_types=dataset.num_node_types,
                        num_edge_types=dataset.num_edge_types,
                        edge_type_emb_dim=training_config.get('edge_type_emb_dim'),
@@ -48,6 +50,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
     opt = optim.Adam(model.parameters(), lr=training_config.get('learning_rate'))
 
     best_test_loss = None
+    metric_best_loss = None
     patience = 0
     for epoch in range(epochs):
         total_loss = 0
@@ -56,7 +59,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
         model.train()
         for batch in train_loader:
             opt.zero_grad()
-            embedding, pred = model(batch, training_config.get('pooling_method'))
+            pred = model(batch)
             loss = model.loss(pred, batch.y)
             loss.backward()
             opt.step()
@@ -77,8 +80,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
         if best_test_loss is None or test_loss < best_test_loss:
             os.makedirs('model_checkpoints', exist_ok=True)
             torch.save(model.state_dict(), f'model_checkpoints/{training_config.get("title")}_checkpoint.pt')
-            best_test_loss = test_loss
-            best_metric = test_metric
+            metric_best_loss = test_metric
             patience = 0
         else:
             patience += 1
@@ -89,7 +91,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
             model = torch.load(f'model_checkpoints/{training_config.get("title")}_checkpoint.pt')
             break
 
-    return model, best_test_loss, test_metric
+    return model, best_test_loss, metric_best_loss
 
 def load_data(dataset, training_config):
     data_size = len(dataset)

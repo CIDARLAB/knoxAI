@@ -11,7 +11,7 @@ def test_model(model, test_loader, training_config, all_metrics=False):
     model.eval()
     for data in test_loader:
         with torch.no_grad():
-            emb, pred = model(data, training_config.get('pooling_method'))
+            pred = model(data)
             pred = pred.argmax(dim=1)
             label = data.y
         preds.append(pred)

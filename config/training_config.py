@@ -7,6 +7,7 @@ DEFAULTS = {
     'train_test_split': 0.7,
     'batch_size': 32,
 
+    'num_layers': 3,
     'pooling_method': 'mean',
     'dropout': 0.5,
     'hidden_channels': 64,

@@ -11,43 +11,34 @@ class GraphConvBase(nn.Module):
         hidden_channels = kwargs.get('hidden_channels')
         out_channels = kwargs.get('out_channels')
         self.dropout = kwargs.get('dropout')
+        num_layers = kwargs.get('num_layers')
+        pooling_method = kwargs.get('pooling_method')
+
+        self.pooling = {"mean": pyg_nn.global_mean_pool,
+                        "add" : pyg_nn.global_add_pool,
+                        "max" : pyg_nn.global_max_pool}.get(pooling_method)
 
         # message-passing
-        self.conv1 = GraphConv(in_channels, hidden_channels)
-        self.conv2 = GraphConv(hidden_channels, hidden_channels)
-        self.conv3 = GraphConv(hidden_channels, hidden_channels)
+        self.convs = nn.ModuleList()
+        for i in range(num_layers):
+            in_ch = in_channels if i == 0 else hidden_channels
+            self.convs.append(GraphConv(in_ch, hidden_channels))
 
         # post-message-passing
         self.post_mp = nn.Sequential(
         nn.Linear(hidden_channels, hidden_channels), nn.Dropout(self.dropout),
         nn.Linear(hidden_channels, out_channels))
 
-        self.pooling = {"mean": pyg_nn.global_mean_pool,
-                        "add" : pyg_nn.global_add_pool,
-                        "max" : pyg_nn.global_max_pool}
-
-    def forward(self, batch, pooling_method="mean"):
+    def forward(self, batch):
         x = batch.x
-        edge_index = batch.edge_index
-        batch = batch.batch
 
-        # First Conv Layer
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        # Second Conv Layer
-        x = self.conv2(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        # Third Conv Layer
-        x = self.conv3(x, edge_index)
-        emb = x
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        x = self.pooling[pooling_method](x, batch)
+        # Message passing through all layers
+        for conv in self.convs:
+            x = conv(x, batch.edge_index)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.pooling(x, batch.batch)
         x = self.post_mp(x)
-        return emb, x
+        return x
     
