@@ -4,6 +4,28 @@ import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
 class GraphConvBase(nn.Module):
+    """
+    GraphConvBase
+
+    A standard Graph Neural Network (GNN) model using GraphConv layers from PyTorch Geometric.
+    This model is suitable for homogeneous graphs where all nodes and edges are of the same type
+    and there are no complex edge attributes.
+
+    Use this model when:
+        - Your graph data does not have multiple node or edge types.
+        - You do not need to incorporate edge features into message passing.
+        - You want a simple and efficient GNN for node or graph classification/regression tasks.
+
+    Args:
+        in_channels (int): Number of input features per node.
+        hidden_channels (int): Number of hidden units in each layer.
+        out_channels (int): Number of output units.
+        num_layers (int): Number of GraphConv layers.
+        dropout (float): Dropout probability.
+        pooling_method (str): Pooling method to use ('mean', 'add', or 'max').
+
+    """
+    
     def __init__(self, **kwargs):
         super(GraphConvBase, self).__init__()
 

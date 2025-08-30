@@ -4,6 +4,33 @@ import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
 class HEATConvBase(nn.Module):
+    """
+    HEATConvBase
+
+    A flexible Graph Neural Network (GNN) model using HEATConv layers from PyTorch Geometric.
+    This model supports heterogeneous graphs with multiple node and edge types, as well as rich node and edge attributes.
+    It is designed for complex graph structures where both node and edge information are important for learning.
+
+    Use this model when:
+        - Your graph data contains multiple node types and/or edge types.
+        - You want to incorporate node and edge attributes into message passing.
+        - You are working with heterogeneous graphs or graphs with complex relational information.
+
+    Args:
+        in_channels (int): Number of input features per node.
+        hidden_channels (int): Number of hidden units in each layer.
+        out_channels (int): Number of output units.
+        num_node_types (int): Number of unique node types.
+        num_edge_types (int): Number of unique edge types.
+        edge_type_emb_dim (int): Embedding dimension for edge types.
+        edge_attr_emb_dim (int): Embedding dimension for edge attributes.
+        edge_dim (int): Number of edge attribute features.
+        num_layers (int): Number of HEATConv layers.
+        dropout (float): Dropout probability.
+        pooling_method (str): Pooling method to use ('mean', 'add', or 'max').
+
+    """
+    
     def __init__(self, **kwargs):
         super(HEATConvBase, self).__init__()
 

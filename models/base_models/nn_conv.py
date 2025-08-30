@@ -4,6 +4,29 @@ import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
 class NNConvBase(nn.Module):
+    """
+    NNConvBase
+
+    A Graph Neural Network (GNN) model using NNConv layers from PyTorch Geometric.
+    This model is designed for graphs where edge attributes play a significant role in message passing.
+    NNConv uses neural networks to dynamically generate convolutional filters based on edge features.
+
+    Use this model when:
+        - Your graph data includes important edge attributes or features.
+        - You want to leverage edge-conditioned message passing for more expressive modeling.
+        - You are working with graphs where relationships between nodes are characterized by rich edge information.
+
+    Args:
+        in_channels (int): Number of input features per node.
+        hidden_channels (int): Number of hidden units in each layer.
+        out_channels (int): Number of output units.
+        edge_dim (int): Number of edge attribute features.
+        num_layers (int): Number of NNConv layers.
+        dropout (float): Dropout probability.
+        pooling_method (str): Pooling method to use ('mean', 'add', or 'max').
+
+    """
+    
     def __init__(self, **kwargs):
         super(NNConvBase, self).__init__()
 
