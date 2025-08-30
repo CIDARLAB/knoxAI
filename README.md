@@ -1,5 +1,5 @@
-<p align="right">
-  <img src="Images/KnoxV1.jpg" alt="Logo" width="150"/>
+<p align="center">
+  <img src="Images/KnoxV1.jpg" alt="Logo" width="600"/>
 </p>
 
 # KnoxAI - A Graph-based Framework for Design Prediction
