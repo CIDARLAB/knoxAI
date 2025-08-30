@@ -10,6 +10,8 @@ from utils.metrics import get_available_metrics
 from utils.load_config import load_config
 from evaluate.evaluate_model import test_model
 from predict.model_prediction import predict
+from config.data_config import DEFAULTS as data_DEFAULTS
+from config.training_config import DEFAULTS as training_DEFAULTS
 
 app = Flask(__name__)
 
@@ -84,6 +86,14 @@ def available_metrics():
 def model_registry():
     try:
         return jsonify(get_model_registry())
+    except Exception as e:
+        return jsonify({"error": "Internal server error occurred"}), 500
+    
+@app.route('/config', methods=["GET"])
+def config():
+    try:
+        ## - Get Default Configurations - ##
+        return jsonify({"data_config": data_DEFAULTS, "training_config": training_DEFAULTS})
     except Exception as e:
         return jsonify({"error": "Internal server error occurred"}), 500
 
