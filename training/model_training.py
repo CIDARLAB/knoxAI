@@ -62,6 +62,7 @@ def run_training(model, train_loader, test_loader, training_config, verbose=True
         for batch in train_loader:
             opt.zero_grad()
             pred = model(batch)
+            pred = torch.sigmoid(pred) if training_config.get('task') == 'binary_classification' else pred
             loss = criterion(pred, batch.y)
             loss.backward()
             opt.step()
@@ -112,7 +113,7 @@ def load_data(dataset, training_config):
 
 def get_out_channels(task):
     if task == 'binary_classification':
-        return 2
+        return 1
     elif task == 'regression':
         return 1
     elif task == 'ranking':

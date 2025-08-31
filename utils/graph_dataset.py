@@ -79,7 +79,7 @@ class GraphDataset(Dataset):
     def build_graph(self, row):
         edge_index, edge_attr, edge_type = self.build_edges(row.get('design'))
         x, node_type = self.build_nodes(row.get('design'))
-        y = self.get_label(row.get('score'))
+        y = self.get_label(row)
         
         data = Data(
             x=torch.tensor(x), 
@@ -189,13 +189,15 @@ class GraphDataset(Dataset):
     
 
     ## - Labels - ##
-    def get_label(self, score):
+    def get_label(self, row):
         if self.task == 'binary_classification':
-            return 0 if score <= self.cut_off else 1
+            return row.get('class')
+        
         if self.task == 'regression':
-            return score
+            return row.get('score')
+        
         if self.task == 'ranking':
-            return self.scores_to_ranking.get(score, 0)
+            return self.scores_to_ranking.get(row.get('score'))
         
     def convert_scores_to_ranking(self):
         scores = []

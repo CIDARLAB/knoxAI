@@ -20,6 +20,7 @@ def test_model(model, test_loader, training_config, all_metrics=False):
         labels.append(label)
     preds = torch.cat(preds, dim=0)
     labels = torch.cat(labels, dim=0)
+    preds = torch.sigmoid(preds) if training_config.get('task') == 'binary_classification' else preds
     test_loss = criterion(preds, labels)
 
     if all_metrics:
