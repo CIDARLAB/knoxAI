@@ -32,7 +32,7 @@ class HEATConvBase(nn.Module):
     """
     
     def __init__(self, **kwargs):
-        super(HEATConvBase, self).__init__()
+        super().__init__()
 
         in_channels = kwargs.get('in_channels')
         hidden_channels = kwargs.get('hidden_channels')
