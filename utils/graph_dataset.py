@@ -118,17 +118,24 @@ class GraphDataset(Dataset):
         return src, dest, edge_attr, edge_type
 
     def build_structure_edges(self, design, edge_attr_size):
-        src = [index for index in range(len(design) - 1)]
-        dest = [index for index in range(1, len(design))]
-        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
-        edge_type = [1 for i in range(len(design)-1)]  # 1 is the index for structure edges
+        # Structure edges are bidirectional
+        src = [index for index in range(len(design) - 1)] + [index for index in range(1, len(design))]
+        dest = [index for index in range(1, len(design))] + [index for index in range(len(design) - 1)]
+        
+        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(src))]
+        
+        edge_type = [1 for i in range(len(src))]  # 1 is the index for structure edges
+
         return src, dest, edge_attr, edge_type
 
     def build_self_loops(self, design, edge_attr_size):
         src = [index for index in range(len(design))]
         dest = [index for index in range(len(design))]
-        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(design))]
-        edge_type = [0 for i in range(len(design))]  # 0 is the index for self-loop edges
+
+        edge_attr = [list(np.zeros(edge_attr_size)) for i in range(len(src))]
+
+        edge_type = [0 for i in range(len(src))]  # 0 is the index for self-loop edges
+        
         return src, dest, edge_attr, edge_type
 
     
@@ -190,7 +197,7 @@ class GraphDataset(Dataset):
 
     ## - Labels - ##
     def get_label(self, row):
-        if self.task == 'binary_classification':
+        if self.task == 'binary_classification' or self.task == 'multiclass_classification':
             return row.get('class')
         
         if self.task == 'regression':
