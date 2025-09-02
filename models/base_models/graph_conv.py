@@ -3,9 +3,9 @@ from torch_geometric.nn import GraphConv
 import torch_geometric.nn as pyg_nn
 import torch.nn.functional as F
 
-class GraphConv(nn.Module):
+class GraphConvBase(nn.Module):
     """
-    GraphConv
+    GraphConvBase
 
     A standard Graph Neural Network (GNN) model using GraphConv layers from PyTorch Geometric.
     This model is suitable for homogeneous graphs where all nodes and edges are of the same type
@@ -27,7 +27,7 @@ class GraphConv(nn.Module):
     """
     
     def __init__(self, **kwargs):
-        super(GraphConv, self).__init__()
+        super(GraphConvBase, self).__init__()
 
         in_channels = kwargs.get('in_channels')
         hidden_channels = kwargs.get('hidden_channels')
