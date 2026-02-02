@@ -17,3 +17,7 @@ knoxAI is a modular deep learning framework for graph-based machine learning, bu
 
 Nicholas Roehner, James Roberts, Andrei Lapets, Dany Gould, Vidya Akavoor, Lucy Qin, D. Benjamin Gordon, Christopher Voigt, and Douglas Densmore. GOLDBAR: A Framework for Combinatorial Biological Design. ACS Synthetic Biology Article ASAP (2024). 
 DOI: https://pubs.acs.org/doi/full/10.1021/acssynbio.4c00296
+
+## Webpage
+
+https://www.cidarlab.org/knox
