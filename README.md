@@ -3,7 +3,7 @@
 </p>
 
 # KnoxAI - A Graph-based Framework for Design Prediction
-knoxAI is a modular deep learning framework for graph-based machine learning, built with PyTorch Geometric and Flask. It supports regression, classification, and ranking tasks on graph-structured data, and provides a REST API for model training, evaluation, and prediction.
+knoxAI is a modular deep learning framework for graph-based and rule-based machine learning, built with FastAPI. It supports regression, classification, and ranking tasks on graph-structured data, and provides a REST API for model training, evaluation, and prediction. Runs are saved and managed through MLflow.
 ## Quickstart
 
 ### Installation
