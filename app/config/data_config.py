@@ -1,4 +1,4 @@
-DEFAULTS = {
+DATA_DEFAULTS = {
     ## - Edges - ##
     'edges_to_use': 'all',
 

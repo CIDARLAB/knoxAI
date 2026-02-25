@@ -1,0 +1,100 @@
+{
+    "data": {
+        "training_data": [
+            {"design": ["A", "B", "C", "D", "E"], "score": 1.0},
+            {"design": ["F", "G", "H", "I", "J"], "score": 0.8},
+            {"design": ["K", "L", "M", "N", "O"], "score": 0.6}
+        ],
+
+        "part_data": {
+            "A": [2.0, 1.0], 
+            "B": [1.0, 3.0], 
+            "C": [1.0, 5.5], 
+            "D": [1.0, 2.3], 
+            "E": [2.0, 1.2], 
+            "F": [1.0, 9.0], 
+            "G": [1.0, 2.0], 
+            "H": [1.0, 1.0], 
+            "I": [2.0, 4.5], 
+            "J": [1.0, 0.3], 
+            "K": [1.0, 6.2], 
+            "L": [1.0, 3.2], 
+            "M": [1.0, 1.2], 
+            "N": [1.0, 2.2], 
+            "O": [2.0, 2.0]
+        },
+
+        "part_library": {
+            "A": "vowel", 
+            "B": "consonant", 
+            "C": "consonant", 
+            "D": "consonant", 
+            "E": "vowel", 
+            "F": "consonant", 
+            "G": "consonant", 
+            "H": "consonant", 
+            "I": "vowel", 
+            "J": "consonant", 
+            "K": "consonant", 
+            "L": "consonant", 
+            "M": "consonant", 
+            "N": "consonant", 
+            "O": "vowel"
+        },
+
+        "interaction_library": {
+            "A": {"B": [0.1], "C": [0.2], "F": [0.3], "E": [0.4]},
+            "E": {"A": [0.1], "C": [0.2], "H": [0.3], "E": [0.4]},
+            "I": {"L": [0.1], "B": [0.2], "J": [0.3], "N": [0.4]},
+            "O": {"A": [0.1], "K": [0.2], "D": [0.3], "E": [0.4]}
+        },
+        
+        "parts": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"],
+
+        "part_types": ["vowel", "consonant"],
+
+        "part_analytics": {
+            "A": {"B": [1.0], "averageScore":1.0, "lowScore": 1.0, "highScore": 1.0, "weights": [1.0]},
+            "B": {"C": [1.0], "averageScore":1.0, "lowScore": 1.0, "highScore": 1.0, "weights": [1.0]},
+            "C": {"D": [1.0], "averageScore":1.0, "lowScore": 1.0, "highScore": 1.0, "weights": [1.0]},
+            "D": {"E": [1.0], "averageScore":1.0, "lowScore": 1.0, "highScore": 1.0, "weights": [1.0]},
+            "E": {"averageScore":1.0, "lowScore": 1.0, "highScore": 1.0, "weights": [1.0]},
+
+            "F": {"G": [0.8], "averageScore":0.8, "lowScore": 0.8, "highScore": 0.8, "weights": [0.8]},
+            "G": {"H": [0.8], "averageScore":0.8, "lowScore": 0.8, "highScore": 0.8, "weights": [0.8]},
+            "H": {"I": [0.8], "averageScore":0.8, "lowScore": 0.8, "highScore": 0.8, "weights": [0.8]},
+            "I": {"J": [0.8], "averageScore":0.8, "lowScore": 0.8, "highScore": 0.8, "weights": [0.8]},
+            "J": {"averageScore":0.8, "lowScore": 0.8, "highScore": 0.8, "weights": [0.8]},
+
+            "K": {"L": [0.6], "averageScore":0.6, "lowScore": 0.6, "highScore": 0.6, "weights": [0.6]},
+            "L": {"M": [0.6], "averageScore":0.6, "lowScore": 0.6, "highScore": 0.6, "weights": [0.6]},
+            "M": {"N": [0.6], "averageScore":0.6, "lowScore": 0.6, "highScore": 0.6, "weights": [0.6]},
+            "N": {"O": [0.6], "averageScore":0.6, "lowScore": 0.6, "highScore": 0.6, "weights": [0.6]},
+            "O": {"averageScore":0.6, "lowScore": 0.6, "highScore": 0.6, "weights": [0.6]}
+        }
+    },
+
+    "data_config": {
+        "edges_to_use": "all",
+        "use_oneHot_parts": "False",
+        "use_oneHot_types": "False",
+        "use_part_data": "False",
+        "use_gta": "False",
+        "use_all_part_analytics": "False",
+        "part_analytics_method": "avg"
+    },
+
+    "training_config": {
+        "task": "regression",
+        "model_name": "GraphConvRegr",
+        "title": "testing",
+        "training_metric": "mean_squared_error",
+        "train_test_split": 0.7,
+        "batch_size": 32,
+        "pooling_method": "mean",
+        "hidden_channels": 64,
+        "learning_rate": 0.001,
+        "epochs": 100,
+        "early_stopping_patience": 10
+    }
+}

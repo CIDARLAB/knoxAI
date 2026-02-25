@@ -5,7 +5,9 @@ import numpy as np
 from scipy.stats import rankdata
 import random
 
-from ..config.data_config import DEFAULTS
+from app.config import DATA_DEFAULTS as DEFAULTS
+
+# TODO: training, validation, and test splits
 
 class GraphDataset(Dataset):
     def __init__(self, data, task, data_config, use_for="training", transform=None, pre_transform=None):
@@ -95,9 +97,22 @@ class GraphDataset(Dataset):
     ## - Build Edges - ##
 
     def build_edges(self, design):
-        src, dest, edge_attr, edge_type = self.build_interaction_edges(design) if self.edges_to_use in ['all', 'interaction'] else ([], [], [], [])
-        src, dest, edge_attr, edge_type += self.build_structure_edges(design, len(edge_attr[0])) if self.edges_to_use in ['all', 'structure'] else ([], [], [], [])
-        src, dest, edge_attr, edge_type += self.build_self_loops(design, len(edge_attr[0]))
+        src, dest, edge_attr, edge_type = self.build_interaction_edges(design) if self.edges_to_use in ['all', 'interaction'] else [], [], [], []
+        
+        if self.edges_to_use in ['all', 'structure']:
+            s, d, ea, et = self.build_structure_edges(design, len(edge_attr[0]))
+            src += s
+            dest += d
+            edge_attr += ea
+            edge_type += et
+
+        if self.edges_to_use in ['all', 'self_loops']:
+            s, d, ea, et = self.build_self_loops(design, len(edge_attr[0]))
+            src += s
+            dest += d
+            edge_attr += ea
+            edge_type += et
+
         edge_index = [src, dest]
         return edge_index, edge_attr, edge_type
 

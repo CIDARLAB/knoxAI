@@ -1,8 +1,8 @@
 import torch
 
-from ..config.training_config import DEFAULTS
-from ..utils.metrics import get_available_metrics
-from ..utils.losses import get_criterion
+from app.config import TRAINING_DEFAULTS as DEFAULTS
+from app.utils.metrics import get_available_metrics
+from app.utils.losses import get_criterion
 
 def test_model(model, test_loader, training_config, all_metrics=False):
     training_config = {**DEFAULTS, **training_config}

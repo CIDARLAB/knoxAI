@@ -1,4 +1,4 @@
-DEFAULTS = {
+TRAINING_DEFAULTS = {
     'task': 'regression',
     'model_name': 'GraphConvRegr',
     'title': 'testing',

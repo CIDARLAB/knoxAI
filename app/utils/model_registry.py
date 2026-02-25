@@ -11,7 +11,7 @@ def get_model_registry():
     model_registry = {}
 
     # Import the base_models module
-    base_models_module = importlib.import_module("models.base_models")
+    base_models_module = importlib.import_module("app.models")
 
     # Get all model names from __all__ in base_models/__init__.py
     for model_name in getattr(base_models_module, '__all__', []):
