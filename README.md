@@ -10,6 +10,7 @@ knoxAI is a modular deep learning framework for graph-based and rule-based machi
 1) Clone this repository
 2) Install dependencies `pip install -r requirements.txt`
 3) Run `uvicorn app.main:api --reload --host 0.0.0.0 --port 8000` in the root directory of this repo
+4) For MLflow user-interface run `mlflow ui --port 5000 --workers 1` in the root directory of this repo
 
 ### Use with [Knox](https://github.com/CIDARLAB/knox) or Standalone
 
