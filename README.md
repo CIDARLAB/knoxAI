@@ -2,7 +2,7 @@
   <img src="Images/KnoxV1.jpg" alt="Logo" width="600"/>
 </p>
 
-# KnoxAI - A Graph-based Framework for Design Prediction
+# KnoxAI - A Framework for Combinatorial Design Prediction
 knoxAI is a modular deep learning framework for graph-based and rule-based machine learning, built with FastAPI. It supports regression, classification, and ranking tasks on graph-structured data, and provides a REST API for model training, evaluation, and prediction. Runs are saved and managed through MLflow.
 ## Quickstart
 
