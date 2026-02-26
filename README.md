@@ -9,7 +9,7 @@ knoxAI is a modular deep learning framework for graph-based and rule-based machi
 ### Installation
 1) Clone this repository
 2) Install dependencies `pip install -r requirements.txt`
-3) Run the Flask app: `python app.py`
+3) Run `uvicorn app.main:api --reload --host 0.0.0.0 --port 8000` in the root directory of this repo
 
 ### Use with [Knox](https://github.com/CIDARLAB/knox) or Standalone
 
