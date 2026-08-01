@@ -6,7 +6,7 @@ def get_criterion(task):
     if task == 'regression':
         return F.mse_loss, 'MSE'
     
-    elif task == 'binary_classification':
+    elif task == 'classification':
         return F.binary_cross_entropy, 'binary_cross_entropy'
     
     elif task == 'multiclass_classification':
