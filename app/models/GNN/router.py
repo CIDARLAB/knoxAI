@@ -1,87 +1,101 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import List, Literal, Optional, Dict
 
-import torch
-from torch_geometric.loader import DataLoader
+import logging
 
-from app.utils.graph_dataset import GraphDataset
-from app.models.GNN.train import train_model
-from app.models.GNN.evaluate import test_model
-from app.models.GNN.predict import predict
-from app.utils.load_config import load_config
-from app.config import DATA_DEFAULTS as data_DEFAULTS
-from app.config import TRAINING_DEFAULTS as training_DEFAULTS
+logging.basicConfig( level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s" )
+logger = logging.getLogger(__name__)
+
+from app.utils.schemas import *
+from app.models.GNN.model import GNNModel
+from app.models.GNN.config import Config
+from app.models.ModelMixins.tune import tune, stop_tuning
+
+from app.models.RandomForest.model import RandomForestModel
+from app.models.RandomForest.config import Config as RFConfig
 
 router = APIRouter(prefix="/gnn", tags=["GNN"])
 
-@router.post('/train-model')
-def train_model():
-    try:
-        ## - Get Configurations - ##
-        config = router.current_request.json_body
-        data = config.get('data')
-        data_config = config.get('data_config')
-        training_config = config.get('training_config')
+@router.post("/train", response_model=TrainResponse)
+def train_endpoint(request: GNNTrainRequest):
+    request.config["vocab_size"] = request.vocab_size
+    request.config["task"] = request.task
 
-        ## - Load Dataset - ##
-        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
+    model = GNNModel(
+        config=Config(**request.config), 
+        task=request.task, 
+        experiment_name=request.experiment_name, 
+        run_name=request.run_name
+    )
 
-        ## - Train Model - ##
-        model, val_results = train_model(dataset, training_config, verbose=True)
+    model.train(
+        train_json=request.data.train,
+        val_json=request.data.val,
+        test_json=request.data.test,
+        save_model=True
+    )
 
-        return JSONResponse(content=jsonable_encoder({"validation_results": val_results[0]}))
+    model.build_surrogate_model(
+        model_class=RandomForestModel,
+        model_config=RFConfig(),
+        train_rule_matrix=request.rule_matrix.x_train,
+        test_rule_matrix=request.rule_matrix.x_test,
+        train_json=request.data.train,
+        val_json=request.data.val,
+        test_json=request.data.test,
+        rule_names=request.rule_matrix.feature_names
+
+    ) if request.rule_matrix is not None else None
+
+    return TrainResponse(
+        run_id=model.run_id, 
+        shap_values=model.shap_values.values.tolist() if model.shap_values is not None else None
+    )
+
+
+@router.post("/predict", response_model=PredictResponse)
+def predict_endpoint(request: GNNPredictRequest):
+    model = GNNModel(config=Config())
+
+    model.load_inference_model(request.run_id)
+
+    return PredictResponse(predictions=model.predict(request.samples))
+
+
+@router.post("/tune", response_model=TuneResponse)
+def tune_endpoint(request: GNNTuneRequest):
+    request.config["vocab_size"] = request.vocab_size
+    request.config["task"] = request.task
     
-    except Exception as e:
-        return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
-
-@router.post('/evaluate-model')
-def evaluate_model():
-    try:
-        config = router.current_request.json_body
-        data = config.get('data')
-        training_config, data_config = load_config(config.get('title'))
-        model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
-
-        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
-
-        test_loader = DataLoader(dataset, batch_size=1, shuffle=True)
-
-        loss, metrics = test_model(model, test_loader, training_config, all_metrics=True)
-
-        return JSONResponse(content=jsonable_encoder({"loss": loss, "metrics": metrics}))
+    result = tune(
+        train_json=request.data.train,
+        val_json=request.data.val,
+        model_class=GNNModel,
+        model_config=Config,
+        config=Config(**request.config),
+        experiment_name=request.experiment_name,
+        n_trials=request.n_trials
+    )
     
-    except FileNotFoundError as e:
-        return JSONResponse(content=jsonable_encoder({"error": str(e)}), status_code=404)
-    except Exception as e:
-        return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
+    return TuneResponse(
+        best_params=result["best_params"],
+        best_value=result["best_val_loss"],
+        metric=result["metric"],
+        trials=result["n_trials"]
+    )
 
-@router.post('/predict-model')
-def predict_model():
-    try:
-        config = router.current_request.json_body
-        data = config.get('data')
-        training_config, data_config = load_config(config.get('title'))
-        model = torch.load(f'training/trained_models/f{training_config.get("title")}/{training_config.get("title")}_Model.pt')
 
-        dataset = GraphDataset(data, training_config.get('task'), data_config).get_batch()
+@router.post("/tune/stop")
+def stop_tuning_endpoint():
+    stop_tuning()
+    return {"status": "tuning stopped"}
 
-        loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
-        prediction = predict(model, loader, training_config)
-
-        return JSONResponse(content=jsonable_encoder({"prediction": prediction}))
-
-    except Exception as e:
-        return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
-
-@router.get('/config')
-def config():
-    try:
-        ## - Get Default Configurations - ##
-        return JSONResponse(content=jsonable_encoder({"data_config": data_DEFAULTS, "training_config": training_DEFAULTS}))
-    except Exception as e:
-        return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
+@router.get("/config", response_model=ConfigResponse)
+def get_default_config():
+    default_config = Config()
+    return ConfigResponse(config=vars(default_config))
     
