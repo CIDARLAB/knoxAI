@@ -7,7 +7,7 @@ def get_criterion(task):
         return F.mse_loss, 'MSE'
     
     elif task == 'classification':
-        return F.binary_cross_entropy, 'binary_cross_entropy'
+        return F.binary_cross_entropy_with_logits, 'binary_cross_entropy_with_logits'
     
     elif task == 'multiclass_classification':
         return F.cross_entropy, 'cross_entropy'
