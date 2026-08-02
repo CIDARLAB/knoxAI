@@ -238,6 +238,10 @@ class PytorchBaseModel(ModelMixin):
             # -----------------------------
             trainer.fit(self.model, datamodule=dm)
 
+            best_ckpt_path = ckpt_cb.best_model_path
+            if best_ckpt_path and (test_json or save_model):
+                self._load_from_checkpoint(best_ckpt_path)
+
             # Log best val loss as a summary metric
             mlflow.log_metric("best_val_loss", early_stop.best_score.item())
 
@@ -250,9 +254,6 @@ class PytorchBaseModel(ModelMixin):
             # -----------------------------
             # Log final model to MLflow
             # -----------------------------
-            #if ckpt_cb.best_model_path is not None and test_json is None and save_model:
-                #self._load_from_checkpoint(ckpt_cb.best_model_path)
-
             self._save_model() if save_model else None
 
     def _count_trainable_params(self):
@@ -264,6 +265,10 @@ class PytorchBaseModel(ModelMixin):
     def _load_from_checkpoint(self, ckpt_path):
         self.model = self.model.__class__.load_from_checkpoint(ckpt_path)
         self.backbone = self.model.backbone
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(device)
+        self.backbone.to(device)
 
     def evaluate(self, test_json):
         # Log test dataset
