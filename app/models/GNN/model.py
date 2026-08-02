@@ -203,23 +203,17 @@ class GNNModel(PytorchBaseModel):
         # -------------------------
         # Optional: node_features
         # -------------------------
-        node_features = None
-        if sample.node_features is not None:
-            node_features = torch.tensor(sample.node_features, dtype=torch.float)
+        node_features = torch.tensor(sample.node_features, dtype=torch.float) if sample.node_features is not None else None
 
         # -------------------------
         # Optional: edge_attr (edge features)
         # -------------------------
-        edge_attr = None
-        if sample.edge_attr is not None:
-            edge_attr = torch.tensor(sample.edge_attr, dtype=torch.float)
+        edge_attr = torch.tensor(sample.edge_attr, dtype=torch.float) if sample.edge_attr is not None else None
 
         # -------------------------
         # Optional: node_label (categorical node labels)
         # -------------------------
-        node_labels = None
-        if sample.node_labels is not None:
-            node_labels = torch.tensor(sample.node_labels, dtype=torch.long)
+        node_labels = torch.tensor(sample.node_labels, dtype=torch.long) if sample.node_labels is not None else None
 
         # -------------------------
         # Optional: foundation model sequence embeddings (node-level)
@@ -229,16 +223,12 @@ class GNNModel(PytorchBaseModel):
         # -------------------------
         # Optional: edge_label (categorical edge labels)
         # -------------------------
-        edge_labels = None
-        if sample.edge_labels is not None:
-            edge_labels = torch.tensor(sample.edge_labels, dtype=torch.long)
+        edge_labels = torch.tensor(sample.edge_labels, dtype=torch.long) if sample.edge_labels is not None else None
 
         # -------------------------
         # Optional: additional design-level features
         # -------------------------
-        features = None
-        if sample.features is not None:
-            features = torch.tensor(sample.features, dtype=torch.float)
+        features = torch.tensor(sample.features, dtype=torch.float) if sample.features is not None else None
 
         # -------------------------
         # Optional: foundation model sequence embeddings (design-level)
@@ -248,9 +238,10 @@ class GNNModel(PytorchBaseModel):
         # -------------------------
         # Optional: label y
         # -------------------------
-        y = None
-        if sample.y is not None:
-            y = torch.tensor(sample.y, dtype=torch.float)
+        if self.task in ["classification", "multiclass_classification"]:
+            y = torch.tensor(sample.y, dtype=torch.long) if sample.y is not None else None
+        else:
+            y = torch.tensor(sample.y, dtype=torch.float) if sample.y is not None else None
 
         # -------------------------
         # Build PyG Data object
