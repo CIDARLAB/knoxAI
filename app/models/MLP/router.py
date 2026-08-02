@@ -1,12 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from typing import List, Literal, Optional, Dict
+from fastapi import APIRouter
 
 import logging
-
-import numpy as np
 
 from app.utils.schemas import *
 from app.models.MLP.config import Config

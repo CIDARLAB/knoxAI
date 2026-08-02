@@ -1,8 +1,5 @@
 from xgboost import XGBClassifier, XGBRegressor
 import mlflow
-import sklearn.metrics as metric
-import scipy.stats as stat
-import pandas as pd
 
 from app.models.ModelMixins.BaseModel import BaseModel
 

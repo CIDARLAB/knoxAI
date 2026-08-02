@@ -1,9 +1,3 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from typing import Literal, Dict
-
 import logging
 logging.basicConfig( level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s" )
 logger = logging.getLogger(__name__)

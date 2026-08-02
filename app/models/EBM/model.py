@@ -3,9 +3,6 @@ import mlflow
 import mlflow.pyfunc
 import joblib
 import os
-import sklearn.metrics as metric
-import scipy.stats as stat
-import pandas as pd
 
 from app.models.ModelMixins.BaseModel import BaseModel
 

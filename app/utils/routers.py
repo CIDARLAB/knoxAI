@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 import logging
-import numpy as np
 
 from app.utils.schemas import *
 
