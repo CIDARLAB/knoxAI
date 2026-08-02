@@ -9,7 +9,9 @@ class Config:
         # -------------------------
         # Task
         # -------------------------
-        self.task = kwargs.get("task", "regression")   # "regression", "classification", "ranking"
+        self.task = kwargs.get("task", "regression")   # "regression", "classification", "multiclass_classification", "ranking"
+        
+        self.num_classes = kwargs.get("num_classes", 2) # for multiclass_classification
 
         # -------------------------
         # Model Hyperparameters

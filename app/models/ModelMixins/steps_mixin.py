@@ -1,5 +1,6 @@
 from torchmetrics.regression import MeanSquaredError, MeanAbsoluteError, R2Score, SpearmanCorrCoef, KendallRankCorrCoef, PearsonCorrCoef
 from torchmetrics.classification import BinaryAccuracy, BinaryPrecision, BinaryRecall, BinaryF1Score, BinaryAUROC
+from torchmetrics.classification import Accuracy, Precision, Recall, F1Score, AUROC
 
 class SharedStepsMixin:
     def setup_metrics(self):
@@ -18,11 +19,18 @@ class SharedStepsMixin:
         self.f1       = BinaryF1Score()
         self.auroc    = BinaryAUROC()
 
+        # MultiClass Classification
+        self.mc_acc   = Accuracy(num_classes=self.num_classes, average="macro")
+        self.mc_prec  = Precision(num_classes=self.num_classes, average="macro") 
+        self.mc_rec   = Recall(num_classes=self.num_classes, average="macro")  
+        self.mc_f1    = F1Score(num_classes=self.num_classes, average="macro") 
+        self.mc_auroc = AUROC(num_classes=self.num_classes, average="macro")
+
     # -------------------------
     # TRAINING
     # -------------------------
     def training_step(self, batch):
-        y_hat = self(batch).view(-1)
+        y_hat = self.get_y_hat(batch)
         loss = self.loss_fn(y_hat, batch.y)
         self.log("train_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
         return loss
@@ -31,7 +39,7 @@ class SharedStepsMixin:
     # VALIDATION
     # -------------------------
     def validation_step(self, batch):
-        y_hat = self(batch).view(-1)
+        y_hat = self.get_y_hat(batch)
         val_loss = self.loss_fn(y_hat, batch.y)
         self.log("val_loss", val_loss, prog_bar=True, on_step=False, on_epoch=True)
         self.compute_metrics(y_hat, batch.y, stage="val")
@@ -40,10 +48,19 @@ class SharedStepsMixin:
     # TESTING
     # -------------------------
     def test_step(self, batch):
-        y_hat = self(batch).view(-1)
+        y_hat = self.get_y_hat(batch)
         test_loss = self.loss_fn(y_hat, batch.y)
-        self.log(f"test_{self.loss_name}", test_loss, on_epoch=True)
-        self.compute_metrics(y_hat, batch.y, stage="test")
+        self.log(f"TEST_{self.loss_name}", test_loss, on_epoch=True)
+        self.compute_metrics(y_hat, batch.y, stage="TEST")
+
+    # -------------------------
+    # Get Predictions
+    # -------------------------
+    def get_y_hat(self, batch):
+        if self.task in ["regression", "classification"]:
+            return self(batch).view(-1)
+        else:
+            return self(batch)
 
     # -------------------------
     # METRICS
@@ -71,6 +88,13 @@ class SharedStepsMixin:
             self.log(f"{stage}_Recall",    self.rec(y_hat, y),   on_epoch=True)
             self.log(f"{stage}_F1",        self.f1(y_hat, y),    on_epoch=True)
             self.log(f"{stage}_AUROC",     self.auroc(y_hat, y), on_epoch=True)
+
+        elif self.task == "multiclass_classification":
+            self.log(f"{stage}_Accuracy",  self.mc_acc(y_hat, y),   on_epoch=True)
+            self.log(f"{stage}_Precision", self.mc_prec(y_hat, y),  on_epoch=True)
+            self.log(f"{stage}_Recall",    self.mc_rec(y_hat, y),   on_epoch=True)
+            self.log(f"{stage}_F1",        self.mc_f1(y_hat, y),    on_epoch=True)
+            self.log(f"{stage}_AUROC",     self.mc_auroc(y_hat, y), on_epoch=True)
 
         elif self.task == "ranking":
             self.log(f"{stage}_Spearman", self.spearman(y_hat, y), on_epoch=True)

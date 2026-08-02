@@ -10,6 +10,7 @@ import pandas as pd
 from app.models.ModelMixins.BaseModel import BaseModel
 
 TASK_MAP = {
+    "multiclass_classification": ExplainableBoostingClassifier,
     "classification": ExplainableBoostingClassifier,
     "regression": ExplainableBoostingRegressor,
 }

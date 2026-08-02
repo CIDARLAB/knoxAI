@@ -9,7 +9,9 @@ class Config:
         # -------------------------
         # Task
         # -------------------------
-        self.task = kwargs.get("task", "regression")   # "regression", "classification", "ranking"
+        self.task = kwargs.get("task", "regression")   # "regression", "classification", "multiclass_classification", "ranking"
+        
+        self.num_classes = kwargs.get("num_classes", 2) # for multiclass_classification
 
         # -------------------------
         # Model Hyperparameters
@@ -22,7 +24,7 @@ class Config:
         self.sequence_length = kwargs.get("sequence_length", 8)
         self.vocab_size     = kwargs.get("vocab_size", 19)
         self.features_dim   = kwargs.get("features_dim", 0)
-        self.out_dim        = kwargs.get("out_dim", 1)
+        self.out_dim        = kwargs.get("out_dim", self.num_classes) if self.task == "multiclass_classification" else kwargs.get("out_dim", 1)
 
         # -------------------------
         # Training Hyperparameters

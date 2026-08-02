@@ -21,7 +21,7 @@ class ModelMixin:
         self.task = task
         self.model_type = model_type
     
-    def _log_metrics(self, y_test, y_pred):
+    def _log_metrics(self, y_test, y_pred, y_pred_proba=None):
         print(f"Shape of y_test: {y_test.shape}, Shape of y_pred: {y_pred.shape}")
 
         if y_test.ndim > 1 and y_test.shape[1] == 1:
@@ -40,12 +40,20 @@ class ModelMixin:
             metrics['test_Kendall'] = stat.kendalltau(y_test, y_pred).statistic
             metrics['test_Spearman'] = stat.spearmanr(y_test, y_pred).statistic
             metrics['test_Pearson'] = stat.pearsonr(y_test, y_pred).statistic
-        else:
+
+        elif self.task == "classification":
             metrics["test_accuracy"] = metric.accuracy_score(y_test, y_pred)
             metrics["test_f1"] = metric.f1_score(y_test, y_pred, average="weighted")
             metrics["test_precision"] = metric.precision_score(y_test, y_pred, average="weighted")
             metrics["test_recall"] = metric.recall_score(y_test, y_pred, average="weighted")
             metrics["test_roc_auc"] = metric.roc_auc_score(y_test, y_pred, average="weighted")
+
+        elif self.task == "multiclass_classification":
+            metrics["test_accuracy"] = metric.accuracy_score(y_test, y_pred)
+            metrics["test_f1"] = metric.f1_score(y_test, y_pred, average="macro")
+            metrics["test_precision"] = metric.precision_score(y_test, y_pred, average="macro")
+            metrics["test_recall"] = metric.recall_score(y_test, y_pred, average="macro")
+            metrics["test_roc_auc"] = metric.roc_auc_score(y_test, y_pred_proba, average="macro", multi_class="ovo")
             
         mlflow.log_metrics(metrics)
 
@@ -69,7 +77,8 @@ class BaseModel(ModelMixin):
 
         self.score_map = {
             "regression": "R2",
-            "classification": "accuracy"
+            "classification": "accuracy",
+            "multiclass_classification": "accuracy"
         }
 
     def train(self, x, y, save_model=True):
@@ -133,13 +142,20 @@ class BaseModel(ModelMixin):
 
             # Get predictions
             y_pred = self.predict(X_test)
+            y_pred_proba = None
+            if self.task == "multiclass_classification":
+                y_pred_proba = self.predict_proba(X_test)
 
             # Log metrics
-            self._log_metrics(y_test, y_pred)
+            self._log_metrics(y_test, y_pred, y_pred_proba=y_pred_proba)
 
     def predict(self, X):
         X = np.array(X)
         return self.model.predict(X)
+
+    def predict_proba(self, X):
+        X = np.array(X)
+        return self.model.predict_proba(X)
     
     def interpret_shap(self, X_train, X_test):
         if self.model_type == "ebm":
@@ -250,6 +266,7 @@ class PytorchBaseModel(ModelMixin):
             # -----------------------------
             if test_json is not None:
                 trainer.test(self.model, datamodule=dm, ckpt_path=ckpt_cb.best_model_path)
+                self.evaluate(test_json)
 
             # -----------------------------
             # Log final model to MLflow
@@ -276,11 +293,15 @@ class PytorchBaseModel(ModelMixin):
 
         # Get predictions
         y_pred = self.predict(test_json)
+        y_pred_proba = None
+        if self.task == "multiclass_classification":
+            y_pred_proba = self.predict_proba(test_json)
 
         # Log metrics
-        self._log_metrics(test_json, y_pred)
+        y_true = np.array([sample.y for sample in test_json])
+        self._log_metrics(y_true, y_pred, y_pred_proba)
 
-    def predict(self, samples):
+    def predict_logits(self, samples):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.backbone.to(device)
         pyg_samples = self._convert_dataset(samples)
@@ -298,9 +319,37 @@ class PytorchBaseModel(ModelMixin):
         with torch.no_grad():
             for batch in loader:
                 batch = batch.to(device)
-                preds = self._predict_helper(batch)
+                logits = self._predict_helper(batch)
 
-        return preds.cpu().numpy().tolist()
+        return logits.cpu()
+
+    def predict_proba(self, samples):
+        logits = self.predict_logits(samples)
+
+        if self.task == "classification":
+            return torch.sigmoid(logits).cpu().numpy().tolist()
+
+        if self.task == "multiclass_classification":
+            return torch.softmax(logits, dim=-1).cpu().numpy().tolist()
+
+        raise ValueError("predict_proba is only supported for classification tasks")
+
+    def predict(self, samples):
+        logits = self.predict_logits(samples)
+
+        if self.task == "regression":
+            return logits.cpu().numpy().tolist()
+
+        if self.task == "classification":
+            probs = torch.sigmoid(logits)
+            preds = (probs >= 0.5).long()
+            return preds.cpu().numpy().tolist()
+
+        if self.task == "multiclass_classification":
+            preds = torch.argmax(logits, dim=-1)
+            return preds.cpu().numpy().tolist()
+
+        return logits.cpu().numpy().tolist()
     
     def build_surrogate_model(
             self, 

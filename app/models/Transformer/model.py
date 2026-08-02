@@ -129,6 +129,7 @@ class TransformerLightning(SharedStepsMixin, pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.task = self.hparams.task
+        self.num_classes = self.hparams.num_classes
 
         self.backbone = TransformerBackbone(
             model_dim=self.hparams.model_dim,

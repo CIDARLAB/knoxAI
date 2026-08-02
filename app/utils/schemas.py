@@ -31,10 +31,10 @@ class EvaluateResponse(BaseModel):
 ##### Schemas for models (RF, EBM, XGBoost) #####
 class ModelData(BaseModel):
     x_train : List[Any]
-    y_train : List[Any]
+    y_train : List[float] | List[int] | List[List[int]]
 
     x_test  : List[Any] | None = None
-    y_test  : List[Any] | None = None
+    y_test  : List[float] | List[List[int]] | None = None
 
     feature_names : list[str] | None = None
 
@@ -44,7 +44,7 @@ class ModelData(BaseModel):
 class TrainRequest(BaseModel):
     data             : ModelData
     feature_names    : list[str] | None = None
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     config           : Dict = Field(default_factory=dict)
     experiment_name  : str = "model_experiment"
     run_name         : str = "model_run"
@@ -56,7 +56,7 @@ class TrainRequest(BaseModel):
 class TuneRequest(BaseModel):
     data             : ModelData
     feature_names    : list[str] | None = None
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     config           : Dict = Field(default_factory=dict)
     n_trials         : int = 50
     experiment_name  : str = "model_tuning_experiment"
@@ -77,7 +77,7 @@ class TransformerDataPoint(BaseModel):
     token_ids  : List[List[int]]
     features   : List[float] | None = None
     sequence   : str | None = None
-    y          : List[float] | None = None
+    y          : List[float] | List[List[int]] | None = None
 
     class Config:
         extra = "forbid"
@@ -96,7 +96,7 @@ class TransformerTrainRequest(BaseModel):
     rule_matrix      : ModelData | None = None
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "transformer_experiment"
     run_name         : str = "transformer_run"
 
@@ -108,7 +108,7 @@ class TransformerTuneRequest(BaseModel):
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
     n_trials         : int = 30
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "transformer_tuning_experiment"
 
     class Config:
@@ -129,7 +129,7 @@ class GNNDataPoint(BaseModel):
     edge_index    : List[List[int]]
     features      : List[List[float]] | None = None
     sequence      : str | None = None
-    y             : List[float] | None = None
+    y             : List[float] | List[List[int]] | None = None
 
     class Config:
         extra = "forbid"
@@ -147,7 +147,7 @@ class GNNTrainRequest(BaseModel):
     rule_matrix      : ModelData | None = None
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "gnn_experiment"
     run_name         : str = "gnn_run"
 
@@ -158,7 +158,7 @@ class GNNTuneRequest(BaseModel):
     data             : GNNData
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     n_trials         : int = 30
     experiment_name  : str = "gnn_tuning_experiment"
 
@@ -175,7 +175,7 @@ class MLPDataPoint(BaseModel):
     token_ids  : List[List[int]] | None = None
     features   : List[float] | None = None
     sequence   : str | None = None
-    y          : List[float] | None = None
+    y          : List[float] | List[List[int]] | None = None
 
     class Config:
         extra = "forbid"
@@ -194,7 +194,7 @@ class MLPTrainRequest(BaseModel):
     rule_matrix      : ModelData | None = None
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "mlp_experiment"
     run_name         : str = "mlp_run"
 
@@ -206,7 +206,7 @@ class MLPTuneRequest(BaseModel):
     vocab_size       : int = 19
     config           : Dict = Field(default_factory=dict)
     n_trials         : int = 30
-    task             : Literal["classification", "regression"] = "regression"
+    task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "mlp_tuning_experiment"
 
     class Config:

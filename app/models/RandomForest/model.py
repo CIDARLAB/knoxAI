@@ -11,6 +11,7 @@ from app.models.ModelMixins.BaseModel import BaseModel
 
 TASK_MAP = {
     "classification": RandomForestClassifier,
+    "multiclass_classification": RandomForestClassifier,
     "regression": RandomForestRegressor,
 }
 
