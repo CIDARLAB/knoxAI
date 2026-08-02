@@ -114,7 +114,7 @@ class MLPModel(PytorchBaseModel):
         # -------------------------
         # Optional: label y
         # -------------------------
-        if self.task in ["classification", "multiclass_classification"]:
+        if self.task == "multiclass_classification":
             y = torch.tensor(sample.y, dtype=torch.long) if sample.y is not None else None
         else:
             y = torch.tensor(sample.y, dtype=torch.float) if sample.y is not None else None
