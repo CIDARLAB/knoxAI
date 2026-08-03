@@ -1,37 +1,5 @@
-import sklearn.metrics as sk_metrics
-import scipy.stats as stats
+# Additional Metrics
 
-def get_available_metrics():
-    available_metrics = {}
-
-    binary_classification_metrics = {
-        "f1_score": sk_metrics.f1_score,
-        "accuracy": sk_metrics.accuracy_score,
-        "precision": sk_metrics.precision_score,
-        "recall": sk_metrics.recall_score,
-        "roc_auc": sk_metrics.roc_auc_score,
-    }
-
-    regression_metrics = {
-        "mean_squared_error": sk_metrics.mean_squared_error,
-        "mean_absolute_error": sk_metrics.mean_absolute_error,
-        "r2_score": sk_metrics.r2_score,
-        "pearsonr": stats.pearsonr,
-    }
-
-    ranking_metrics = {
-        "spearmanr": stats.spearmanr,
-        "kendalltau": stats.kendalltau,
-        "precision_at_top_k": precision_at_top_k,
-        "precision_at_bottom_k": precision_at_bottom_k,
-        "pairwise_accuracy": pairwise_accuracy
-    }
-
-    available_metrics['binary_classification'] = binary_classification_metrics
-    available_metrics['regression'] = regression_metrics
-    available_metrics['ranking'] = ranking_metrics
-
-    return available_metrics
 
 def pairwise_accuracy(rank1, rank2):
     n = len(rank1)

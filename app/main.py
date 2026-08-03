@@ -30,7 +30,6 @@ import mlflow
 from mlflow.tracking import MlflowClient
 
 from app.utils.model_registry import get_model_registry
-from app.utils.metrics import get_available_metrics
 
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 
@@ -123,14 +122,6 @@ def delete_experiment(experiment_id: str):
         raise
     except Exception as e:
         logger.exception("Failed to delete experiment.")
-        return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
-
-@api.get('/available-metrics')
-def available_metrics():
-    try:
-        return JSONResponse(content=jsonable_encoder(get_available_metrics().keys()))
-    except Exception as e:
-        logger.exception("Failed to get available metrics.")
         return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
 
 @api.get('/model/registry')
