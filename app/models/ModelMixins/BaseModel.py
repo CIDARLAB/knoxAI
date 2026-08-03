@@ -299,11 +299,12 @@ class PytorchBaseModel(ModelMixin):
 
         # Log metrics
         y_true = np.array([sample.y for sample in test_json])
-        self._log_metrics(y_true, y_pred, y_pred_proba)
+        self._log_metrics(np.array(y_true), np.array(y_pred), y_pred_proba=np.array(y_pred_proba) if y_pred_proba is not None else None)
 
     def predict_logits(self, samples):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.backbone.to(device)
+        self.backbone.eval()
         pyg_samples = self._convert_dataset(samples)
 
         collate_fn = self._get_collate_fn()
