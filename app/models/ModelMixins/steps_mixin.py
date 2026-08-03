@@ -5,26 +5,29 @@ from torchmetrics.classification import Accuracy, Precision, Recall, F1Score, AU
 class SharedStepsMixin:
     def setup_metrics(self):
         # Regression
-        self.r2score  = R2Score()
-        self.rmse     = MeanSquaredError(squared=False)
-        self.mae      = MeanAbsoluteError()
-        #self.spearman = SpearmanCorrCoef()
-        self.kendall  = KendallRankCorrCoef()
-        self.pearson  = PearsonCorrCoef()
+        if self.task == "regression":
+            self.r2score  = R2Score()
+            self.rmse     = MeanSquaredError(squared=False)
+            self.mae      = MeanAbsoluteError()
+            #self.spearman = SpearmanCorrCoef()
+            self.kendall  = KendallRankCorrCoef()
+            self.pearson  = PearsonCorrCoef()
 
         # Classification
-        self.acc      = BinaryAccuracy()
-        self.prec     = BinaryPrecision()
-        self.rec      = BinaryRecall()
-        self.f1       = BinaryF1Score()
-        self.auroc    = BinaryAUROC()
+        if self.task == "classification":
+            self.acc      = BinaryAccuracy()
+            self.prec     = BinaryPrecision()
+            self.rec      = BinaryRecall()
+            self.f1       = BinaryF1Score()
+            self.auroc    = BinaryAUROC()
 
         # MultiClass Classification
-        self.mc_acc   = Accuracy(num_classes=self.num_classes, average="macro")
-        self.mc_prec  = Precision(num_classes=self.num_classes, average="macro") 
-        self.mc_rec   = Recall(num_classes=self.num_classes, average="macro")  
-        self.mc_f1    = F1Score(num_classes=self.num_classes, average="macro") 
-        self.mc_auroc = AUROC(num_classes=self.num_classes, average="macro")
+        if self.task == "multiclass_classification":
+            self.mc_acc   = Accuracy(num_classes=self.num_classes, average="macro")
+            self.mc_prec  = Precision(num_classes=self.num_classes, average="macro") 
+            self.mc_rec   = Recall(num_classes=self.num_classes, average="macro")  
+            self.mc_f1    = F1Score(num_classes=self.num_classes, average="macro") 
+            self.mc_auroc = AUROC(num_classes=self.num_classes, average="macro")
 
     # -------------------------
     # TRAINING
