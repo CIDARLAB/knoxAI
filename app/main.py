@@ -73,24 +73,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     log.error("422 raw_len=%d raw_preview=%s", len(raw), raw.decode("utf-8", errors="replace")[:1000])
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
-@api.get('/runs')
-def get_runs_info(experiment_name: str = "ebm"):
+@api.get('/runs/{run_id}')
+def get_run_info(run_id: str):
     try:
         client = MlflowClient()
-        experiment = client.get_experiment_by_name(experiment_name)
-
-        if experiment is None:
+        run = client.get_run(run_id)
+        if run is None:
             return {"run_info": []}
 
-        runs = client.search_runs([experiment.experiment_id])
-        run_info = [ 
-            { 
-                "run_id": run.info.run_id, 
-                "start_time": run.info.start_time, 
-                "end_time": run.info.end_time, 
-                "metrics": run.data.metrics, 
-                "params": run.data.params, 
-            } for run in runs ]
+        run_info = {
+            "run_id": run.info.run_id,
+            "start_time": run.info.start_time,
+            "end_time": run.info.end_time,
+            "metrics": run.data.metrics,
+            "params": run.data.params,
+            "status": run.info.status,
+        }
 
         return {"run_info": run_info}
     
