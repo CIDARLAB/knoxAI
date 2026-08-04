@@ -206,8 +206,9 @@ class PytorchBaseModel(ModelMixin):
         self.run_id = None
         self.shap_values = None
 
-    def train(self, train_json, val_json, test_json=None, save_model=False, patience=20, min_delta=1e-4):
-        with mlflow.start_run(run_name=self.run_name) as run:
+    def train(self, train_json, val_json, test_json=None, save_model=False, patience=20, min_delta=1e-4, run_id=None):
+        run_ctx = mlflow.start_run(run_id=run_id) if run_id else mlflow.start_run(run_name=self.run_name)
+        with run_ctx as run:
             seed_everything(self.config.seed)
             
             # -----------------------------

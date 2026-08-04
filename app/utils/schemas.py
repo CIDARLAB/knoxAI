@@ -12,8 +12,6 @@ class PredictResponse(BaseModel):
 
 class TrainResponse(BaseModel):
     run_id : str
-    shap_values : Any = None
-    ebm_importances : Any = None
 
 class ConfigResponse(BaseModel):
     config : Dict[str, Any]
