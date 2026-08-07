@@ -10,8 +10,8 @@ knoxAI is a modular deep learning framework for graph-based and rule-based machi
 1) Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 2) Clone this repository
 3) run `docker build -t knoxai .` in the root of this repo
-4) run `docker run -p 7000:7000 knoxai`
-5) Open FastAPI Docs at http://localhost:7000/docs
+4) run `docker run -p 8000:8000 knoxai`
+5) Open FastAPI Docs at http://localhost:8000/docs
 
 ### Non-Docker Instructions
 1) Clone this repository
