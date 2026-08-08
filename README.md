@@ -12,13 +12,16 @@ knoxAI is a modular deep learning framework for graph-based and rule-based machi
 3) run `docker build -t knoxai .` in the root of this repo
 4) run `docker run -p 8000:8000 knoxai`
 5) Open FastAPI Docs at http://localhost:8000/docs
+6) For MLflow user-interface run `mlflow ui --port 5000 --workers 1` in the root directory of this repo
+7) Open MLflow user-interface at http://localhost:5000
 
 ### Non-Docker Instructions
 1) Clone this repository
 2) Install dependencies `pip install -r requirements.txt`
 3) Run `uvicorn app.main:api --reload --host 127.0.0.1 --port 8000` in the root directory of this repo
-4) For MLflow user-interface run `mlflow ui --port 5000 --workers 1` in the root directory of this repo
-5) Open FastAPI Docs at http://localhost:7000/docs
+4) Open FastAPI Docs at http://localhost:8000/docs
+5) For MLflow user-interface run `mlflow ui --port 5000 --workers 1` in the root directory of this repo
+6) Open MLflow user-interface at http://localhost:5000
 
 ### Use with [Knox](https://github.com/CIDARLAB/knox) or Standalone
 
