@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 import uvicorn
+import os
 
 import torch
 torch.set_float32_matmul_precision('medium')
@@ -31,7 +32,7 @@ from mlflow.tracking import MlflowClient
 
 from app.utils.model_registry import get_model_registry
 
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
 
 api = FastAPI()
 api.include_router(gnn_router)
