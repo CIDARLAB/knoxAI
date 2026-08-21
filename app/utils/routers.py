@@ -5,7 +5,7 @@ import logging
 
 from app.utils.schemas import *
 from app.utils.mlflow_utils import create_train_run
-from app.models.ModelMixins.tune import tune, stop_tuning
+from app.models.ModelMixins.tune import tune_pytorch, tune, stop_tuning
 from app.models.ModelMixins.BaseModel import BaseModel, PytorchBaseModel
 from app.models.RandomForest.model import RandomForestModel
 from app.models.RandomForest.config import Config as RFConfig
@@ -15,12 +15,11 @@ def create_model_router(
     model_cls : BaseModel,
     config_cls,
     prefix: str,
-    tags: list,
-    tune_fn=None,
-    stop_tune_fn=None
+    tags: list
 ):
     router = APIRouter(prefix=prefix, tags=tags)
     logger = logging.getLogger(__name__)
+    log = logging.getLogger("uvicorn.error")
 
 
     @router.post("/train", response_model=TrainResponse)
@@ -105,6 +104,34 @@ def create_model_router(
             return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
 
 
+    @router.post("/tune", status_code=status.HTTP_202_ACCEPTED)
+    async def tune_endpoint(request_raw: Request, request: TuneRequest, background_tasks : BackgroundTasks):
+        raw = await request_raw.body()
+        log.info("raw_len=%d", len(raw))
+        background_tasks.add_task(run_tune, request.model_dump())
+
+    def run_tune(payload: dict) -> None:
+        request = TuneRequest(**payload)
+        tune(
+            x_train=request.data.x_train,
+            y_train=request.data.y_train,
+            task=request.task,
+            model_class=model_cls,
+            model_config=config_cls,
+            config=config_cls(**request.config) if request.config else config_cls(),
+            feature_names=request.feature_names,
+            experiment_name=request.experiment_name,
+            n_trials=request.n_trials
+        )
+        log.info("Tuning completed")
+
+
+    @router.post("/tune/stop")
+    def stop_tuning_endpoint():
+        stop_tuning()
+        return {"status": "tuning stopped"}
+
+
     @router.get("/config", response_model=ConfigResponse)
     def config_endpoint():
         try:
@@ -113,25 +140,6 @@ def create_model_router(
         except Exception as e:
             logger.exception("Failed to get default config.")
             return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
-
-
-    if tune_fn is not None and stop_tune_fn is not None:
-        @router.post("/tune")
-        def tune_endpoint(request: TuneRequest):
-            return tune_fn(
-                x_train=request.data.x_train,
-                y_train=request.data.y_train,
-                base_config=config_cls(**request.config) if request.config else config_cls(),
-                feature_names=request.feature_names,
-                experiment_name=request.experiment_name,
-                n_trials=request.n_trials
-            )
-
-
-        @router.post("/tune/stop")
-        def stop_tuning_endpoint():
-            stop_tune_fn()
-            return {"status": "tuning stopped"}
 
     return router
 
@@ -204,26 +212,30 @@ def create_model_router_pytorch(
         model.load_inference_model(request.run_id)
 
         return PredictResponse(predictions=model.predict(request.samples))
-    
-    @router.post("/tune", response_model=TuneResponse)
-    def tune_endpoint(request: tune_request_type):
-        request.config["vocab_size"] = request.vocab_size
+
+    @router.post("/tune", status_code=status.HTTP_202_ACCEPTED)
+    async def tune_endpoint(request: tune_request_type, request_raw: Request, background_tasks: BackgroundTasks):
+        raw = await request_raw.body()
+        log.info("raw_len=%d", len(raw))
+        background_tasks.add_task(run_tune, request.model_dump())
+
+    def run_tune(payload: dict) -> None:
+        request = tune_request_type(**payload)
+        request.config["vocab_size"] = request.vocab_size + 1
         request.config["task"] = request.task
-        
-        result = tune(
+
+        tune_pytorch(
             train_json=request.data.train,
             val_json=request.data.val,
-            base_config=config_cls(**request.config),
+            task=request.task,
+            model_class=model_cls,
+            model_config=config_cls,
+            config=config_cls(**request.config) if request.config else config_cls(),
             experiment_name=request.experiment_name,
             n_trials=request.n_trials
         )
-        
-        return TuneResponse(
-            best_params=result["best_params"],
-            best_value=result["best_val_loss"],
-            metric=result["metric"],
-            trials=result["trials"]
-        )
+
+        log.info("Tuning completed")
 
 
     @router.post("/tune/stop")

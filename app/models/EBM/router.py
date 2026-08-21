@@ -7,19 +7,15 @@ logging.basicConfig( level=logging.INFO, format="%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 from app.utils.routers import create_model_router
-import numpy as np
 from app.utils.schemas import *
 from app.models.EBM.model import EBMModel
 from app.models.EBM.config import Config
-from app.models.EBM.tune import tune, stop_tuning
 
 router = create_model_router(
     model_cls=EBMModel,
     config_cls=Config,
     prefix="/ebm",
-    tags=["EBM"],
-    tune_fn=tune,
-    stop_tune_fn=stop_tuning
+    tags=["EBM"]
 )
     
 @router.get("/global_plot/{run_id}")

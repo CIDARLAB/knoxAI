@@ -16,11 +16,10 @@ class TrainResponse(BaseModel):
 class ConfigResponse(BaseModel):
     config : Dict[str, Any]
 
-class TuneResponse(BaseModel):
+class TuneResponse(BaseModel): # Not Used
     best_params : Dict[str, Any]
     best_value  : float
-    metric      : str
-    trials      : int
+    n_trials    : int
 
 class EvaluateResponse(BaseModel):
     metrics : Dict[str, float]
