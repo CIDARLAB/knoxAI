@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from app.models.EBM.router import router as ebm_router
 from app.models.GNN.router import router as gnn_router
 from app.models.MLP.router import router as mlp_router
 from app.models.RandomForest.router import router as random_forest_router
 from app.models.Transformer.router import router as transformer_router
 from app.models.XGBoost.router import router as xgboost_router
+from app.models.ModelMixins.tune import stop_tuning
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -73,6 +74,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     log.error("422 errors: %s", exc.errors())
     log.error("422 raw_len=%d raw_preview=%s", len(raw), raw.decode("utf-8", errors="replace")[:1000])
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+@api.post("/stop_tuning", status_code=status.HTTP_202_ACCEPTED)
+def stop_tuning_endpoint():
+    stop_tuning()
+    log.info("Tuning stopped by user request")
+    return {"status": "tuning stopped"}
 
 @api.get('/runs/{run_id}')
 def get_run_info(run_id: str):

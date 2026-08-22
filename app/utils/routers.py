@@ -5,7 +5,7 @@ import logging
 
 from app.utils.schemas import *
 from app.utils.mlflow_utils import create_train_run
-from app.models.ModelMixins.tune import tune_pytorch, tune, stop_tuning
+from app.models.ModelMixins.tune import tune_pytorch, tune
 from app.models.ModelMixins.BaseModel import BaseModel, PytorchBaseModel
 from app.models.RandomForest.model import RandomForestModel
 from app.models.RandomForest.config import Config as RFConfig
@@ -126,12 +126,6 @@ def create_model_router(
         log.info("Tuning completed")
 
 
-    @router.post("/tune/stop")
-    def stop_tuning_endpoint():
-        stop_tuning()
-        return {"status": "tuning stopped"}
-
-
     @router.get("/config", response_model=ConfigResponse)
     def config_endpoint():
         try:
@@ -236,12 +230,6 @@ def create_model_router_pytorch(
         )
 
         log.info("Tuning completed")
-
-
-    @router.post("/tune/stop")
-    def stop_tuning_endpoint():
-        stop_tuning()
-        return {"status": "tuning stopped"}
 
 
     @router.get("/config", response_model=ConfigResponse)
