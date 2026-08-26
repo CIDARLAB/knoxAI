@@ -22,65 +22,73 @@ def create_model_router(
     log = logging.getLogger("uvicorn.error")
 
 
-    @router.post("/train", response_model=TrainResponse)
-    def train_endpoint(request: TrainRequest):
-        try:
-            # Prepare config
-            config = config_cls(**request.config) if request.config else config_cls()
+    @router.post("/train", response_model=TrainResponse, status_code=status.HTTP_202_ACCEPTED)
+    async def train_endpoint(request: TrainRequest, request_raw: Request, background_tasks: BackgroundTasks):
+        raw = await request_raw.body()
+        log.info("raw_len=%d", len(raw))
 
-            # Initialize model
-            model = model_cls(
-                config=config, 
-                experiment_name=request.experiment_name, 
-                task=request.task, 
-                run_name=request.run_name,
-                feature_names=request.feature_names
+        run_id = create_train_run(request.experiment_name, request.run_name)
+        background_tasks.add_task(run_training, request.model_dump(), run_id)
+
+        return TrainResponse(run_id=run_id)
+
+    def run_training(payload: dict, run_id: str) -> None:
+        request = TrainRequest(**payload)
+
+        # Prepare config
+        config = config_cls(**request.config) if request.config else config_cls()
+
+        # Initialize model
+        model = model_cls(
+            config=config, 
+            experiment_name=request.experiment_name, 
+            task=request.task, 
+            run_name=request.run_name,
+            feature_names=request.feature_names,
+            run_id=run_id
+        )
+
+        # Train the model
+        model.train(
+            request.data.x_train, 
+            request.data.y_train
+        )
+
+        # Evaluate the model
+        if request.data.x_test is not None and request.data.y_test is not None:
+            model.evaluate(
+                request.data.x_test, 
+                request.data.y_test
             )
 
-            # Train the model
-            model.train(
-                request.data.x_train, 
-                request.data.y_train
-            )
-
-            # Evaluate the model
-            if request.data.x_test is not None and request.data.y_test is not None:
-                model.evaluate(
-                    request.data.x_test, 
-                    request.data.y_test
+            # Interpret with SHAP if requested
+            if request.interpret_shap:
+                model.interpret_shap(
+                    request.data.x_train,
+                    request.data.x_test
                 )
 
-                # Interpret with SHAP if requested
-                if request.interpret_shap:
-                    model.interpret_shap(
-                        request.data.x_train,
-                        request.data.x_test
-                    )
-
-            return TrainResponse(run_id=model.run_id)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.exception("Training failed.")
-            return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
+        log.info("Training completed for run_id: %s", model.run_id)
 
 
-    @router.post("/predict", response_model=PredictResponse)
-    def predict_endpoint(request: PredictRequest):
-        try:
-            # Initialize model
-            model = model_cls()
+    @router.post("/predict", status_code=status.HTTP_202_ACCEPTED)
+    async def predict_endpoint(request: PredictRequest, request_raw: Request, background_tasks: BackgroundTasks):
+        raw = await request_raw.body()
+        log.info("raw_len=%d", len(raw))
+        background_tasks.add_task(run_predict, request.model_dump())
 
-            # Load model from run_id
-            model.load_from_run(request.run_id)
 
-            # Return predictions
-            return PredictResponse(predictions=model.predict(request.samples).tolist())
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.exception("Prediction failed.")
-            return JSONResponse(content=jsonable_encoder({"error": "Internal server error occurred"}), status_code=500)
+    def run_predict(payload: dict) -> None:
+        request = PredictRequest(**payload)
+        model = model_cls()
+        model.load_from_run(request.run_id)
+        predictions = model.predict(
+            request.samples,
+            sample_ids=request.sample_ids if hasattr(request, "sample_ids") else None,
+            save_predictions=request.save_predictions if hasattr(request, "save_predictions") else False
+        )
+        log.info("Prediction completed for run_id: %s", model.run_id)
+        log.info("Predictions: %s", predictions)
 
 
     @router.post("/evaluate", response_model=EvaluateResponse)
@@ -172,19 +180,22 @@ def create_model_router_pytorch(
         request.config["vocab_size"] = request.vocab_size + 1
         request.config["task"] = request.task
 
+        log.info("Config for run_id: %s: %s", run_id, request.config)
+
         model = model_cls(
             config=config_cls(**request.config),
             task=request.task,
             experiment_name=request.experiment_name,
             run_name=request.run_name,
+            vocab=None,
+            run_id=run_id
         )
 
         model.train(
             train_json=request.data.train,
             val_json=request.data.val,
             test_json=request.data.test,
-            save_model=True,
-            run_id=run_id,
+            save_model=True
         )
 
         if request.rule_matrix is not None:
@@ -199,13 +210,28 @@ def create_model_router_pytorch(
                 rule_names=request.rule_matrix.feature_names,
             )
 
-    @router.post("/predict", response_model=PredictResponse)
-    def predict_endpoint(request: predict_request_type):
-        model = model_cls(config=config_cls(**request.config))
+        log.info("Training completed for run_id: %s", model.run_id)
 
+
+    @router.post("/predict", status_code=status.HTTP_202_ACCEPTED)
+    async def predict_endpoint(request: predict_request_type, request_raw: Request, background_tasks: BackgroundTasks):
+        raw = await request_raw.body()
+        log.info("raw_len=%d", len(raw))
+        background_tasks.add_task(run_predict, request.model_dump())
+
+
+    def run_predict(payload: dict) -> None:
+        request = predict_request_type(**payload)
+        model = model_cls()
         model.load_inference_model(request.run_id)
+        predictions = model.predict(
+            request.samples,
+            sample_ids=request.sample_ids if hasattr(request, "sample_ids") else None,
+            save_predictions=request.save_predictions if hasattr(request, "save_predictions") else False
+        )
+        log.info("Prediction completed for run_id: %s", model.run_id)
+        log.info("Predictions: %s", predictions)
 
-        return PredictResponse(predictions=model.predict(request.samples))
 
     @router.post("/tune", status_code=status.HTTP_202_ACCEPTED)
     async def tune_endpoint(request: tune_request_type, request_raw: Request, background_tasks: BackgroundTasks):

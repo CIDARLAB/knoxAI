@@ -6,8 +6,10 @@ from typing import List, Literal, Optional, Dict, Any
 class PredictRequest(BaseModel):
     run_id : str
     samples : List[Any]
+    sample_ids : List[str] | None = None
+    save_predictions : bool | None = False
 
-class PredictResponse(BaseModel):
+class PredictResponse(BaseModel): # Not Used
     predictions : List[Any]
 
 class TrainResponse(BaseModel):
@@ -114,6 +116,8 @@ class TransformerTuneRequest(BaseModel):
 class TransformerPredictRequest(BaseModel):
     run_id : str
     samples : List[TransformerDataPoint]
+    sample_ids : List[str] | None = None
+    save_predictions : bool | None = False
 
 
 ##### GNN-specific schemas #####
@@ -165,6 +169,8 @@ class GNNTuneRequest(BaseModel):
 class GNNPredictRequest(BaseModel):
     run_id : str
     samples : List[GNNDataPoint]
+    sample_ids : List[str] | None = None
+    save_predictions : bool | None = False
 
 
 ##### MLP-specific schemas #####
@@ -212,3 +218,6 @@ class MLPTuneRequest(BaseModel):
 class MLPPredictRequest(BaseModel):
     run_id : str
     samples : List[MLPDataPoint]
+    sample_ids : List[str] | None = None
+    save_predictions : bool | None = False
+    

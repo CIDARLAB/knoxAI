@@ -174,11 +174,11 @@ class GNNLightning(SharedStepsMixin, pl.LightningModule):
     
 
 class GNNModel(PytorchBaseModel):
-    def __init__(self, config, task="regression", experiment_name="gnn", run_name="run"):
-        super().__init__(config, task, experiment_name, run_name)
+    def __init__(self, config=None, task="regression", experiment_name="gnn", run_name="run", vocab=None, run_id=None):
+        super().__init__(config, task, experiment_name, run_name, vocab, run_id)
         self.model_type = "gnn"
-        self.model = GNNLightning(**config.__dict__)
-        self.backbone = self.model.backbone
+        self.model = GNNLightning(**config.__dict__) if config is not None else None
+        self.backbone = self.model.backbone if config is not None else None
         self.data_point_printed = False
 
     def _predict_helper(self, batch):

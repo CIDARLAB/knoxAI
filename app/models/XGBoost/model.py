@@ -10,10 +10,10 @@ TASK_MAP = {
 }
 
 class XGBoostModel(BaseModel):
-    def __init__(self, config, task="regression", experiment_name="xgboost", run_name="run", feature_names=None):
-        super().__init__(config, task, experiment_name, run_name, feature_names)
+    def __init__(self, config=None, task="regression", experiment_name="xgboost", run_name="run", feature_names=None, run_id=None):
+        super().__init__(config, task, experiment_name, run_name, feature_names, run_id)
         self.model_type = "xgboost"
-        self.model = TASK_MAP[task](**config.__dict__)
+        self.model = TASK_MAP[task](**config.__dict__) if config is not None else None
     
     def _save_model(self):
         mlflow.xgboost.log_model(self.model, name="model")

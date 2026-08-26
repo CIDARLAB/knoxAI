@@ -83,11 +83,11 @@ class MLPLightning(SharedStepsMixin, pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
     
 class MLPModel(PytorchBaseModel):
-    def __init__(self, config, task="regression", experiment_name="transformer", run_name="run"):
-        super().__init__(config, task, experiment_name, run_name)
+    def __init__(self, config=None, task="regression", experiment_name="mlp", run_name="run", vocab=None, run_id=None):
+        super().__init__(config, task, experiment_name, run_name, vocab, run_id)
         self.model_type = "mlp"
-        self.model = MLPLightning(**config.__dict__)
-        self.backbone = self.model.backbone
+        self.model = MLPLightning(**config.__dict__) if config is not None else None
+        self.backbone = self.model.backbone if config is not None else None
 
     def _predict_helper(self, batch):
         return self.backbone(getattr(batch, "token_ids", None), getattr(batch, "features", None))

@@ -22,7 +22,7 @@ class ModelMixin:
         self.model_type = model_type
     
     def _log_metrics(self, y_test, y_pred, y_pred_proba=None):
-        print(f"Shape of y_test: {y_test.shape}, Shape of y_pred: {y_pred.shape}")
+        #print(f"Shape of y_test: {y_test.shape}, Shape of y_pred: {y_pred.shape}")
 
         if y_test.ndim > 1 and y_test.shape[1] == 1:
             y_test = np.ravel(y_test)
@@ -64,14 +64,14 @@ class ModelMixin:
 
     
 class BaseModel(ModelMixin):
-    def __init__(self, config, task="regression", experiment_name="default_experiment", run_name="run", feature_names=None):
+    def __init__(self, config=None, task="regression", experiment_name="default_experiment", run_name="run", feature_names=None, run_id=None):
         super().__init__(config, model_type="base_model", task=task)
         self.feature_names = feature_names
         self.model = None
         mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
         self.run_name = run_name
-        self.run_id = None
+        self.run_id = run_id
         self.shap_values = None
         self.ebm_importances = None
 
@@ -82,7 +82,8 @@ class BaseModel(ModelMixin):
         }
 
     def train(self, x, y, save_model=True):
-        with mlflow.start_run(run_name=self.run_name) as run:
+        run_ctx = mlflow.start_run(run_id=self.run_id) if self.run_id else mlflow.start_run(run_name=self.run_name)
+        with run_ctx as run:
             # Load data to numpy arrays
             X_train, y_train = self._load_data(x, y)
 
@@ -108,7 +109,7 @@ class BaseModel(ModelMixin):
             self._save_model() if save_model else None
 
             # Store run_id for future reference
-            self.run_id = mlflow.active_run().info.run_id
+            self.run_id = run.info.run_id
 
     def cross_validate(self, x, y, cv=5, scoring="neg_mean_squared_error"):
         with mlflow.start_run(run_name=self.run_name):
@@ -149,13 +150,33 @@ class BaseModel(ModelMixin):
             # Log metrics
             self._log_metrics(y_test, y_pred, y_pred_proba=y_pred_proba)
 
-    def predict(self, X):
+    def predict(self, X, sample_ids=None, save_predictions=False):
         X = np.array(X)
-        return self.model.predict(X)
+        preds = self.model.predict(X)
 
-    def predict_proba(self, X):
+        if save_predictions:
+            with mlflow.start_run(run_id=self.run_id):
+                df = pd.DataFrame()
+                if sample_ids is not None:
+                    df["sample_id"] = sample_ids
+                df["prediction"] = preds
+                mlflow.log_table(data=df, artifact_file="predictions.json")
+
+        return preds
+
+    def predict_proba(self, X, sample_ids=None, save_predictions=False):
         X = np.array(X)
-        return self.model.predict_proba(X)
+        preds_proba = self.model.predict_proba(X)
+
+        if save_predictions:
+            with mlflow.start_run(run_id=self.run_id):
+                df = pd.DataFrame()
+                if sample_ids is not None:
+                    df["sample_id"] = sample_ids
+                df["prediction"] = preds_proba
+                mlflow.log_table(data=df, artifact_file="predictions.json")
+
+        return preds_proba
     
     def interpret_shap(self, X_train, X_test):
         if self.model_type == "ebm":
@@ -195,7 +216,7 @@ class BaseModel(ModelMixin):
 
 
 class PytorchBaseModel(ModelMixin):
-    def __init__(self, config, task="regression", experiment_name="default_experiment", run_name="run", vocab=None):
+    def __init__(self, config=None, task="regression", experiment_name="default_experiment", run_name="run", vocab=None, run_id=None):
         super().__init__(config, model_type="pytorch_base_model", task=task)
         self.vocab = vocab
         self.model = None
@@ -203,11 +224,11 @@ class PytorchBaseModel(ModelMixin):
         mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
         self.run_name = run_name
-        self.run_id = None
+        self.run_id = run_id
         self.shap_values = None
 
-    def train(self, train_json, val_json, test_json=None, save_model=False, patience=20, min_delta=1e-4, run_id=None):
-        run_ctx = mlflow.start_run(run_id=run_id) if run_id else mlflow.start_run(run_name=self.run_name)
+    def train(self, train_json, val_json, test_json=None, save_model=False, patience=20, min_delta=1e-4):
+        run_ctx = mlflow.start_run(run_id=self.run_id) if self.run_id else mlflow.start_run(run_name=self.run_name)
         with run_ctx as run:
             seed_everything(self.config.seed)
             
@@ -336,22 +357,33 @@ class PytorchBaseModel(ModelMixin):
 
         raise ValueError("predict_proba is only supported for classification tasks")
 
-    def predict(self, samples):
+    def predict(self, samples, sample_ids=None, save_predictions=False):
         logits = self.predict_logits(samples)
 
         if self.task == "regression":
+            self.save_predictions(logits.cpu().numpy().tolist(), sample_ids=sample_ids) if save_predictions else None
             return logits.cpu().numpy().tolist()
 
         if self.task == "classification":
             probs = torch.sigmoid(logits)
             preds = (probs >= 0.5).long()
+            self.save_predictions(preds.cpu().numpy().tolist(), sample_ids=sample_ids) if save_predictions else None
             return preds.cpu().numpy().tolist()
 
         if self.task == "multiclass_classification":
             preds = torch.argmax(logits, dim=-1)
+            self.save_predictions(preds.cpu().numpy().tolist(), sample_ids=sample_ids) if save_predictions else None
             return preds.cpu().numpy().tolist()
 
         return logits.cpu().numpy().tolist()
+
+    def save_predictions(self, preds, sample_ids=None):
+        with mlflow.start_run(run_id=self.run_id):
+            df = pd.DataFrame()
+            if sample_ids is not None:
+                df["sample_id"] = sample_ids
+            df["prediction"] = preds
+            mlflow.log_table(data=df, artifact_file="predictions.json")
     
     def build_surrogate_model(
             self, 

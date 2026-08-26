@@ -153,11 +153,11 @@ class TransformerLightning(SharedStepsMixin, pl.LightningModule):
     
 
 class TransformerModel(PytorchBaseModel):
-    def __init__(self, config, task="regression", experiment_name="transformer", run_name="run"):
-        super().__init__(config, task, experiment_name, run_name)
+    def __init__(self, config=None, task="regression", experiment_name="transformer", run_name="run", vocab=None, run_id=None):
+        super().__init__(config, task, experiment_name, run_name, vocab=vocab, run_id=run_id)
         self.model_type = "transformer"
-        self.model = TransformerLightning(**config.__dict__)
-        self.backbone = self.model.backbone
+        self.model = TransformerLightning(**config.__dict__) if config is not None else None
+        self.backbone = self.model.backbone if config is not None else None
 
     def _predict_helper(self, batch):
         return self.backbone(
