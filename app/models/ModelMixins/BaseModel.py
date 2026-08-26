@@ -68,7 +68,6 @@ class BaseModel(ModelMixin):
         super().__init__(config, model_type="base_model", task=task)
         self.feature_names = feature_names
         self.model = None
-        mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
         self.run_name = run_name
         self.run_id = run_id
@@ -82,6 +81,7 @@ class BaseModel(ModelMixin):
         }
 
     def train(self, x, y, save_model=True):
+        mlflow.set_experiment(self.experiment_name)
         run_ctx = mlflow.start_run(run_id=self.run_id) if self.run_id else mlflow.start_run(run_name=self.run_name)
         with run_ctx as run:
             # Load data to numpy arrays
@@ -112,6 +112,7 @@ class BaseModel(ModelMixin):
             self.run_id = run.info.run_id
 
     def cross_validate(self, x, y, cv=5, scoring="neg_mean_squared_error"):
+        mlflow.set_experiment(self.experiment_name)
         with mlflow.start_run(run_name=self.run_name):
             # Load data to numpy arrays
             x, y = self._load_data(x, y)
@@ -221,13 +222,13 @@ class PytorchBaseModel(ModelMixin):
         self.vocab = vocab
         self.model = None
         self.backbone = None
-        mlflow.set_experiment(experiment_name)
         self.experiment_name = experiment_name
         self.run_name = run_name
         self.run_id = run_id
         self.shap_values = None
 
     def train(self, train_json, val_json, test_json=None, save_model=False, patience=20, min_delta=1e-4):
+        mlflow.set_experiment(self.experiment_name)
         run_ctx = mlflow.start_run(run_id=self.run_id) if self.run_id else mlflow.start_run(run_name=self.run_name)
         with run_ctx as run:
             seed_everything(self.config.seed)
