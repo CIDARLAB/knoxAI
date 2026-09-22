@@ -5,6 +5,7 @@ import logging
 
 from app.utils.schemas import *
 from app.utils.mlflow_utils import create_train_run
+from app.utils.knox_requests import KnoxRequest
 from app.models.ModelMixins.tune import tune_pytorch, tune
 from app.models.ModelMixins.BaseModel import BaseModel, PytorchBaseModel
 from app.models.RandomForest.model import RandomForestModel
@@ -69,6 +70,7 @@ def create_model_router(
                 )
 
         log.info("Training completed for run_id: %s", model.run_id)
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.post("/predict", status_code=status.HTTP_202_ACCEPTED)
@@ -89,6 +91,7 @@ def create_model_router(
         )
         log.info("Prediction completed for run_id: %s", model.run_id)
         log.info("Predictions: %s", predictions)
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.post("/evaluate", response_model=EvaluateResponse)
@@ -132,6 +135,7 @@ def create_model_router(
             n_trials=request.n_trials
         )
         log.info("Tuning completed")
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.get("/config", response_model=ConfigResponse)
@@ -211,6 +215,7 @@ def create_model_router_pytorch(
             )
 
         log.info("Training completed for run_id: %s", model.run_id)
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.post("/predict", status_code=status.HTTP_202_ACCEPTED)
@@ -231,6 +236,7 @@ def create_model_router_pytorch(
         )
         log.info("Prediction completed for run_id: %s", model.run_id)
         log.info("Predictions: %s", predictions)
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.post("/tune", status_code=status.HTTP_202_ACCEPTED)
@@ -256,6 +262,7 @@ def create_model_router_pytorch(
         )
 
         log.info("Tuning completed")
+        KnoxRequest().update_job_status(job_id=request.job_id, status="COMPLETED") if request.job_id else None
 
 
     @router.get("/config", response_model=ConfigResponse)

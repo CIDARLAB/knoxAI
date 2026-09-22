@@ -8,6 +8,7 @@ class PredictRequest(BaseModel):
     samples : List[Any]
     sample_ids : List[str] | None = None
     save_predictions : bool | None = False
+    job_id : str | None = None
 
 class PredictResponse(BaseModel): # Not Used
     predictions : List[Any]
@@ -48,6 +49,7 @@ class TrainRequest(BaseModel):
     experiment_name  : str = "model_experiment"
     run_name         : str = "model_run"
     interpret_shap   : bool = False
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -59,6 +61,7 @@ class TuneRequest(BaseModel):
     config           : Dict = Field(default_factory=dict)
     n_trials         : int = 50
     experiment_name  : str = "model_tuning_experiment"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -68,6 +71,7 @@ class EvaluateRequest(BaseModel):
     x_test         : List[Any]
     y_test         : List[Any]
     feature_names  : list[str] | None = None
+    job_id         : str | None = None
 
 
 
@@ -98,6 +102,7 @@ class TransformerTrainRequest(BaseModel):
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "transformer_experiment"
     run_name         : str = "transformer_run"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -109,6 +114,7 @@ class TransformerTuneRequest(BaseModel):
     n_trials         : int = 30
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "transformer_tuning_experiment"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -118,6 +124,7 @@ class TransformerPredictRequest(BaseModel):
     samples : List[TransformerDataPoint]
     sample_ids : List[str] | None = None
     save_predictions : bool | None = False
+    job_id : str | None = None
 
 
 ##### GNN-specific schemas #####
@@ -151,6 +158,7 @@ class GNNTrainRequest(BaseModel):
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "gnn_experiment"
     run_name         : str = "gnn_run"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -162,6 +170,7 @@ class GNNTuneRequest(BaseModel):
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     n_trials         : int = 30
     experiment_name  : str = "gnn_tuning_experiment"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -171,6 +180,7 @@ class GNNPredictRequest(BaseModel):
     samples : List[GNNDataPoint]
     sample_ids : List[str] | None = None
     save_predictions : bool | None = False
+    job_id : str | None = None
 
 
 ##### MLP-specific schemas #####
@@ -200,6 +210,7 @@ class MLPTrainRequest(BaseModel):
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "mlp_experiment"
     run_name         : str = "mlp_run"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -211,6 +222,7 @@ class MLPTuneRequest(BaseModel):
     n_trials         : int = 30
     task             : Literal["classification", "regression", "multiclass_classification"] = "regression"
     experiment_name  : str = "mlp_tuning_experiment"
+    job_id           : str | None = None
 
     class Config:
         extra = "forbid"
@@ -220,4 +232,4 @@ class MLPPredictRequest(BaseModel):
     samples : List[MLPDataPoint]
     sample_ids : List[str] | None = None
     save_predictions : bool | None = False
-    
+    job_id : str | None = None
