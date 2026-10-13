@@ -23,7 +23,7 @@ class RandomForestModel(BaseModel):
         )
     
     def _save_model(self):
-        mlflow.sklearn.log_model(self.model, name="model")
+        mlflow.sklearn.log_model(self.model, name="model", skops_trusted_types=["sklearn.tree._tree.Tree"])
     
     def load_from_run(self, run_id):
         self.run_id = run_id
